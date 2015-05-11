@@ -14,155 +14,125 @@
 #define AUTH_RESP "<iq id=\"_xmpp_auth1\" type=\"result\"/>"
 #define END_STREAM "</stream:stream>"
 
-void connection_handler(XMPPClient *client)
+int
+listen_for(XMPPClient *client, const char * const stanza)
 {
     int read_size;
+    char buf[2];
+    memset(buf, 0, sizeof(buf));
 
-    // client loop
-    while(1) {
-        char buf[2];
+    GString *stream = g_string_new("");
+    errno = 0;
+    gboolean received = FALSE;
+    while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
+        g_string_append_len(stream, buf, read_size);
+        if (g_strcmp0(stream->str, stanza) == 0) {
+            received = TRUE;
+        }
         memset(buf, 0, sizeof(buf));
-
-        // wait for stream
-        GString *stream = g_string_new("");
-        errno = 0;
-        gboolean received = FALSE;
-        while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
-            g_string_append_len(stream, buf, read_size);
-            if (g_strcmp0(stream->str, STREAM_REQ) == 0) {
-                received = TRUE;
-            }
-            memset(buf, 0, sizeof(buf));
-        }
-
-        // error
-        if (read_size == -1) {
-            perror("Error receiving on connection");
-            xmppclient_end_session(client);
-            g_string_free(stream, TRUE);
-            break;
-
-        // client closed
-        } else if (read_size == 0) {
-            printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
-            xmppclient_end_session(client);
-            g_string_free(stream, TRUE);
-            break;
-
-        } else {
-            printf("RECV: %s\n", STREAM_REQ);
-            fflush(stdout);
-            g_string_free(stream, TRUE);
-
-            // send stream response
-            int sent = 0;
-            int to_send = strlen(STREAM_RESP);
-            char *marker = STREAM_RESP;
-            while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
-                to_send -= sent;
-                marker += sent;
-            }
-
-            printf("SENT: %s\n", STREAM_RESP);
-            fflush(stdout);
-
-            memset(buf, 0, sizeof(buf));
-
-            // send features
-            sent = 0;
-            to_send = strlen(FEATURES);
-            marker = FEATURES;
-            while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
-                to_send -= sent;
-                marker += sent;
-            }
-
-            printf("SENT: %s\n", FEATURES);
-            fflush(stdout);
-
-            memset(buf, 0, sizeof(buf));
-
-            // wait for auth request
-            stream = g_string_new("");
-            errno = 0;
-            gboolean received = FALSE;
-            while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
-                g_string_append_len(stream, buf, read_size);
-                if (g_strcmp0(stream->str, AUTH_REQ) == 0) {
-                    received = TRUE;
-                }
-                memset(buf, 0, sizeof(buf));
-            }
-
-            // error
-            if (read_size == -1) {
-                perror("Error receiving on connection");
-                xmppclient_end_session(client);
-                g_string_free(stream, TRUE);
-                break;
-
-            // client closed
-            } else if (read_size == 0) {
-                printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
-                xmppclient_end_session(client);
-                g_string_free(stream, TRUE);
-                break;
-
-            } else {
-                printf("RECV: %s\n", AUTH_REQ);
-                fflush(stdout);
-                g_string_free(stream, TRUE);
-
-                // send auth response
-                sent = 0;
-                to_send = strlen(AUTH_RESP);
-                marker = AUTH_RESP;
-                while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
-                    to_send -= sent;
-                    marker += sent;
-                }
-
-                printf("SENT: %s\n", AUTH_RESP);
-                fflush(stdout);
-
-                memset(buf, 0, sizeof(buf));
-
-                // wait until stream closed
-                stream = g_string_new("");
-                errno = 0;
-                gboolean received = FALSE;
-                while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
-                    printf("%c", buf[0]);
-                    fflush(stdout);
-                    g_string_append_len(stream, buf, read_size);
-                    if (g_str_has_suffix(stream->str, END_STREAM)) {
-                        received = TRUE;
-                    }
-                    memset(buf, 0, sizeof(buf));
-                }
-
-                // error
-                if (read_size == -1) {
-                    perror("Error receiving on connection");
-                    xmppclient_end_session(client);
-                    g_string_free(stream, TRUE);
-                    break;
-
-                // client closed
-                } else if (read_size == 0) {
-                    printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
-                    xmppclient_end_session(client);
-                    g_string_free(stream, TRUE);
-                    break;
-
-                } else {
-                    printf("\nEnd stream receieved");
-                    xmppclient_end_session(client);
-                    break;
-                }
-            }
-        }
     }
+
+    // error
+    if (read_size == -1) {
+        perror("Error receiving on connection");
+        xmppclient_end_session(client);
+        g_string_free(stream, TRUE);
+        return -1;
+
+    // client closed
+    } else if (read_size == 0) {
+        printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+        xmppclient_end_session(client);
+        g_string_free(stream, TRUE);
+        return -1;
+    }
+
+    printf("RECV: %s\n", stanza);
+    fflush(stdout);
+    return 0;
+}
+
+void
+send_to(XMPPClient *client, const char * const stanza)
+{
+    int sent = 0;
+    int to_send = strlen(stanza);
+    char *marker = (char*)stanza;
+    while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
+        to_send -= sent;
+        marker += sent;
+    }
+    printf("SENT: %s\n", stanza);
+    fflush(stdout);
+}
+
+int
+debug_client(XMPPClient *client)
+{
+    int read_size;
+    char buf[2];
+    memset(buf, 0, sizeof(buf));
+
+    printf("RECV: ");
+    fflush(stdout);
+
+    GString *stream = g_string_new("");
+    errno = 0;
+    gboolean received = FALSE;
+    while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
+        printf("%c", buf[0]);
+        fflush(stdout);
+        g_string_append_len(stream, buf, read_size);
+        if (g_str_has_suffix(stream->str, END_STREAM)) {
+            received = TRUE;
+        }
+        memset(buf, 0, sizeof(buf));
+    }
+
+    // error
+    if (read_size == -1) {
+        perror("Error receiving on connection");
+        xmppclient_end_session(client);
+        g_string_free(stream, TRUE);
+        return -1;
+
+    // client closed
+    } else if (read_size == 0) {
+        printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+        xmppclient_end_session(client);
+        g_string_free(stream, TRUE);
+        return -1;
+    }
+
+    return 0;
+}
+
+void connection_handler(XMPPClient *client)
+{
+    int res = listen_for(client, STREAM_REQ);
+    if (res == -1) {
+        return;
+    }
+
+    send_to(client, STREAM_RESP);
+    send_to(client, FEATURES);
+
+    res = listen_for(client, AUTH_REQ);
+    if (res == -1) {
+        return;
+    }
+
+    send_to(client, AUTH_RESP);
+
+    res = debug_client(client);
+    if (res == -1) {
+        return;
+    }
+
+    printf("\nEnd stream receieved\n");
+    xmppclient_end_session(client);
+    fflush(stdout);
+    return;
 }
 
 int main(int argc , char *argv[])
@@ -244,5 +214,9 @@ int main(int argc , char *argv[])
     XMPPClient *client = xmppclient_new(client_addr, client_socket);
 
     connection_handler(client);
+
+    while (recv(listen_socket, NULL, 1, 0) > 0) {}
+    shutdown(listen_socket, 2);
+    close(listen_socket);
     return 0;
 }
