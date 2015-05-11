@@ -5,17 +5,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "server/clients.h"
+#include "server/xmppclient.h"
 
 #define STREAM_REQ "<?xml version=\"1.0\"?><stream:stream to=\"localhost\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define STREAM_RESP  "<?xml version=\"1.0\"?><stream:stream from=\"localhost\" id=\"stream1\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define FEATURES "<stream:features></stream:features>"
 #define AUTH_REQ "<iq id=\"_xmpp_auth1\" type=\"set\"><query xmlns=\"jabber:iq:auth\"><username>stabber</username><password>password</password><resource>profanity</resource></query></iq>"
 #define AUTH_RESP "<iq id=\"_xmpp_auth1\" type=\"result\"/>"
+#define END_STREAM "</stream:stream>"
 
-void* connection_handler(void *data)
+void connection_handler(XMPPClient *client)
 {
-    ChatClient *client = (ChatClient *)data;
     int read_size;
 
     // client loop
@@ -38,12 +38,14 @@ void* connection_handler(void *data)
         // error
         if (read_size == -1) {
             perror("Error receiving on connection");
+            xmppclient_end_session(client);
             g_string_free(stream, TRUE);
             break;
 
         // client closed
         } else if (read_size == 0) {
-            printf("%s:%d - Client disconnected.\n", client->ip, client->port);
+            printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+            xmppclient_end_session(client);
             g_string_free(stream, TRUE);
             break;
 
@@ -80,7 +82,7 @@ void* connection_handler(void *data)
 
             memset(buf, 0, sizeof(buf));
 
-            // listen to client stream
+            // wait for auth request
             stream = g_string_new("");
             errno = 0;
             gboolean received = FALSE;
@@ -95,12 +97,14 @@ void* connection_handler(void *data)
             // error
             if (read_size == -1) {
                 perror("Error receiving on connection");
+                xmppclient_end_session(client);
                 g_string_free(stream, TRUE);
                 break;
 
             // client closed
             } else if (read_size == 0) {
-                printf("%s:%d - Client disconnected.\n", client->ip, client->port);
+                printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+                xmppclient_end_session(client);
                 g_string_free(stream, TRUE);
                 break;
 
@@ -122,11 +126,43 @@ void* connection_handler(void *data)
                 fflush(stdout);
 
                 memset(buf, 0, sizeof(buf));
+
+                // wait until stream closed
+                stream = g_string_new("");
+                errno = 0;
+                gboolean received = FALSE;
+                while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
+                    printf("%c", buf[0]);
+                    fflush(stdout);
+                    g_string_append_len(stream, buf, read_size);
+                    if (g_str_has_suffix(stream->str, END_STREAM)) {
+                        received = TRUE;
+                    }
+                    memset(buf, 0, sizeof(buf));
+                }
+
+                // error
+                if (read_size == -1) {
+                    perror("Error receiving on connection");
+                    xmppclient_end_session(client);
+                    g_string_free(stream, TRUE);
+                    break;
+
+                // client closed
+                } else if (read_size == 0) {
+                    printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+                    xmppclient_end_session(client);
+                    g_string_free(stream, TRUE);
+                    break;
+
+                } else {
+                    printf("\nEnd stream receieved");
+                    xmppclient_end_session(client);
+                    break;
+                }
             }
         }
     }
-
-    return 0;
 }
 
 int main(int argc , char *argv[])
@@ -167,8 +203,6 @@ int main(int argc , char *argv[])
 
     printf("Starting on port: %d...\n", port);
 
-    clients_init();
-
     // create socket
     errno = 0;
     listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // ipv4, tcp, ip
@@ -198,29 +232,17 @@ int main(int argc , char *argv[])
     }
     puts("Waiting for incoming connections...");
 
-    // connection accept loop
-    while (1) {
-        c = sizeof(struct sockaddr_in);
-        errno = 0;
-        client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
-        if (client_socket == -1) {
-            perror("Accept failed");
-        }
-
-        // create thread for each new client
-        ChatClient *client = clients_new(client_addr, client_socket);
-        clients_add(client);
-
-        pthread_t client_thread;
-        ret = pthread_create(&client_thread, NULL, connection_handler, (void *)client);
-        if (ret == 0) {
-            printf("%s:%d - Connection handler assigned.\n", client->ip, client->port);
-        } else {
-            puts("Could not create thread.");
-        }
-
-        clients_print_total();
+    // connection accept
+    c = sizeof(struct sockaddr_in);
+    errno = 0;
+    client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
+    if (client_socket == -1) {
+        perror("Accept failed");
+        return 0;
     }
 
+    XMPPClient *client = xmppclient_new(client_addr, client_socket);
+
+    connection_handler(client);
     return 0;
 }
