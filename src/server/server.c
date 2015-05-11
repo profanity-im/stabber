@@ -163,8 +163,6 @@ int main(int argc , char *argv[])
         port = 5222;
     }
 
-    int listen_socket, client_socket;
-    int c, ret;
     struct sockaddr_in server_addr, client_addr;
 
     if (argc == 2) {
@@ -175,7 +173,7 @@ int main(int argc , char *argv[])
 
     // create socket
     errno = 0;
-    listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // ipv4, tcp, ip
+    int listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // ipv4, tcp, ip
     if (listen_socket == -1) {
         perror("Could not create socket");
         return 0;
@@ -187,7 +185,7 @@ int main(int argc , char *argv[])
 
     // bind socket to port
     errno = 0;
-    ret = bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    int ret = bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (ret == -1) {
         perror("Bind failed");
         return 0;
@@ -203,9 +201,9 @@ int main(int argc , char *argv[])
     puts("Waiting for incoming connections...");
 
     // connection accept
-    c = sizeof(struct sockaddr_in);
+    int c = sizeof(struct sockaddr_in);
     errno = 0;
-    client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
+    int client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
     if (client_socket == -1) {
         perror("Accept failed");
         return 0;
