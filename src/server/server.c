@@ -9,6 +9,9 @@
 
 #define STREAM_REQ "<?xml version=\"1.0\"?><stream:stream to=\"localhost\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define STREAM_RESP  "<?xml version=\"1.0\"?><stream:stream from=\"localhost\" id=\"stream1\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
+#define FEATURES "<stream:features></stream:features>"
+#define AUTH_REQ "<iq id=\"_xmpp_auth1\" type=\"set\"><query xmlns=\"jabber:iq:auth\"><username>stabber</username><password>password</password><resource>profanity</resource></query></iq>"
+#define AUTH_RESP "<iq id=\"_xmpp_auth1\" type=\"result\"/>"
 
 void* connection_handler(void *data)
 {
@@ -20,14 +23,14 @@ void* connection_handler(void *data)
         char buf[2];
         memset(buf, 0, sizeof(buf));
 
-        // listen to client stream
+        // wait for stream
         GString *stream = g_string_new("");
         errno = 0;
-        gboolean stream_opened = FALSE;
-        while ((!stream_opened) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
+        gboolean received = FALSE;
+        while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
             g_string_append_len(stream, buf, read_size);
             if (g_strcmp0(stream->str, STREAM_REQ) == 0) {
-                stream_opened = TRUE;
+                received = TRUE;
             }
             memset(buf, 0, sizeof(buf));
         }
@@ -45,10 +48,11 @@ void* connection_handler(void *data)
             break;
 
         } else {
-            printf("RECV: %s\n", stream->str);
+            printf("RECV: %s\n", STREAM_REQ);
             fflush(stdout);
             g_string_free(stream, TRUE);
 
+            // send stream response
             int sent = 0;
             int to_send = strlen(STREAM_RESP);
             char *marker = STREAM_RESP;
@@ -62,13 +66,61 @@ void* connection_handler(void *data)
 
             memset(buf, 0, sizeof(buf));
 
+            // send features
+            sent = 0;
+            to_send = strlen(FEATURES);
+            marker = FEATURES;
+            while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
+                to_send -= sent;
+                marker += sent;
+            }
+
+            printf("SENT: %s\n", FEATURES);
+            fflush(stdout);
+
+            memset(buf, 0, sizeof(buf));
+
             // listen to client stream
             stream = g_string_new("");
             errno = 0;
-            while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
-                printf("%c", buf[0]);
-                fflush(stdout);
+            gboolean received = FALSE;
+            while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
                 g_string_append_len(stream, buf, read_size);
+                if (g_strcmp0(stream->str, AUTH_REQ) == 0) {
+                    received = TRUE;
+                }
+                memset(buf, 0, sizeof(buf));
+            }
+
+            // error
+            if (read_size == -1) {
+                perror("Error receiving on connection");
+                g_string_free(stream, TRUE);
+                break;
+
+            // client closed
+            } else if (read_size == 0) {
+                printf("%s:%d - Client disconnected.\n", client->ip, client->port);
+                g_string_free(stream, TRUE);
+                break;
+
+            } else {
+                printf("RECV: %s\n", AUTH_REQ);
+                fflush(stdout);
+                g_string_free(stream, TRUE);
+
+                // send auth response
+                sent = 0;
+                to_send = strlen(AUTH_RESP);
+                marker = AUTH_RESP;
+                while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
+                    to_send -= sent;
+                    marker += sent;
+                }
+
+                printf("SENT: %s\n", AUTH_RESP);
+                fflush(stdout);
+
                 memset(buf, 0, sizeof(buf));
             }
         }
