@@ -1,3 +1,5 @@
+core
+server
 Makefile
 Makefile.in
 aclocal.m4
@@ -13,11 +15,12 @@ src/server/.deps/
 src/server/.dirstamp
 src/server/clients.o
 src/server/server.o
+src/server/parser.o
+src/server/xmppclient.o
+
 src/stamp-h1
 
 .codelite/
 stabber.project
 stabber.workspace
-
-server
 

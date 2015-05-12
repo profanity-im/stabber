@@ -6,8 +6,10 @@
 #include <unistd.h>
 
 #include "server/xmppclient.h"
+#include "server/parser.h"
 
-#define STREAM_REQ "<?xml version=\"1.0\"?><stream:stream to=\"localhost\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
+#define XML_START "<?xml version=\"1.0\"?>"
+#define STREAM_REQ "<stream:stream to=\"localhost\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define STREAM_RESP  "<?xml version=\"1.0\"?><stream:stream from=\"localhost\" id=\"stream1\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define FEATURES "<stream:features></stream:features>"
 #define AUTH_REQ "<iq id=\"_xmpp_auth1\" type=\"set\"><query xmlns=\"jabber:iq:auth\"><username>stabber</username><password>password</password><resource>profanity</resource></query></iq>"
@@ -72,14 +74,12 @@ debug_client(XMPPClient *client)
     char buf[2];
     memset(buf, 0, sizeof(buf));
 
-    printf("RECV: ");
-    fflush(stdout);
-
     GString *stream = g_string_new("");
     errno = 0;
     while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
-        printf("%c", buf[0]);
+        parser_feed(buf, 1);
         fflush(stdout);
+        parser_reset();
         g_string_append_len(stream, buf, read_size);
         memset(buf, 0, sizeof(buf));
         if (g_str_has_suffix(stream->str, END_STREAM)) {
@@ -107,7 +107,12 @@ debug_client(XMPPClient *client)
 
 void connection_handler(XMPPClient *client)
 {
-    int res = listen_for(client, STREAM_REQ);
+    int res = listen_for(client, XML_START);
+    if (res == -1) {
+        return;
+    }
+
+    res = listen_for(client, STREAM_REQ);
     if (res == -1) {
         return;
     }
@@ -196,6 +201,9 @@ int main(int argc , char *argv[])
         perror("Listen failed");
         return 0;
     }
+
+    parser_init();
+
     puts("Waiting for incoming connections...");
 
     // connection accept
@@ -210,6 +218,8 @@ int main(int argc , char *argv[])
     XMPPClient *client = xmppclient_new(client_addr, client_socket);
 
     connection_handler(client);
+
+    parser_close();
 
     while (recv(listen_socket, NULL, 1, 0) > 0) {}
     shutdown(listen_socket, 2);
