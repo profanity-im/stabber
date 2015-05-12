@@ -23,13 +23,12 @@ listen_for(XMPPClient *client, const char * const stanza)
 
     GString *stream = g_string_new("");
     errno = 0;
-    gboolean received = FALSE;
-    while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
+    while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
         g_string_append_len(stream, buf, read_size);
-        if (g_strcmp0(stream->str, stanza) == 0) {
-            received = TRUE;
-        }
         memset(buf, 0, sizeof(buf));
+        if (g_strcmp0(stream->str, stanza) == 0) {
+            break;
+        }
     }
 
     // error
@@ -78,15 +77,14 @@ debug_client(XMPPClient *client)
 
     GString *stream = g_string_new("");
     errno = 0;
-    gboolean received = FALSE;
-    while ((!received) && ((read_size = recv(client->sock, buf, 1, 0)) > 0)) {
+    while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
         printf("%c", buf[0]);
         fflush(stdout);
         g_string_append_len(stream, buf, read_size);
-        if (g_str_has_suffix(stream->str, END_STREAM)) {
-            received = TRUE;
-        }
         memset(buf, 0, sizeof(buf));
+        if (g_str_has_suffix(stream->str, END_STREAM)) {
+            break;
+        }
     }
 
     // error
