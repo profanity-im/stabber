@@ -28,15 +28,6 @@ start_element(void *data, const char *element, const char **attribute)
 static void
 end_element(void *data, const char *element)
 {
-//    int i;
-//    for (i = 0; i < depth; i++) {
-//        printf(" ");
-//    }
-
-//    if (last_content) {
-//        printf("%s Contents: \"%s\"\n", element, last_content);
-//    }
-//
     if (text) {
         printf(" TEXT: %s\n", text->str);
         g_string_free(text, TRUE);

@@ -17,6 +17,43 @@
 #define END_STREAM "</stream:stream>"
 
 int
+listen_for_xmlstart(XMPPClient *client)
+{
+    int read_size;
+    char buf[2];
+    memset(buf, 0, sizeof(buf));
+
+    GString *stream = g_string_new("");
+    errno = 0;
+    while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
+        g_string_append_len(stream, buf, read_size);
+        memset(buf, 0, sizeof(buf));
+        if (g_strcmp0(stream->str, XML_START) == 0) {
+            break;
+        }
+    }
+
+    // error
+    if (read_size == -1) {
+        perror("Error receiving on connection");
+        xmppclient_end_session(client);
+        g_string_free(stream, TRUE);
+        return -1;
+
+    // client closed
+    } else if (read_size == 0) {
+        printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+        xmppclient_end_session(client);
+        g_string_free(stream, TRUE);
+        return -1;
+    }
+
+    printf("RECV: %s\n", XML_START);
+    fflush(stdout);
+    return 0;
+}
+
+int
 listen_for(XMPPClient *client, const char * const stanza)
 {
     int read_size;
@@ -107,7 +144,7 @@ debug_client(XMPPClient *client)
 
 void connection_handler(XMPPClient *client)
 {
-    int res = listen_for(client, XML_START);
+    int res = listen_for_xmlstart(client);
     if (res == -1) {
         return;
     }
