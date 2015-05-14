@@ -7,6 +7,7 @@
 
 #include "server/xmppclient.h"
 #include "server/parser.h"
+#include "server/stanza.h"
 
 #define XML_START "<?xml version=\"1.0\"?>"
 
@@ -221,7 +222,7 @@ int main(int argc , char *argv[])
     printf("RECV: ");
     listen_to(client);
 
-    parser_show_stanzas();
+    stanza_show_all();
 
 //
 //    res = listen_for(client, STREAM_REQ);

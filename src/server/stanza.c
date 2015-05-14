@@ -3,8 +3,10 @@
 
 #include "server/stanza.h"
 
+static GList *stanzas;
+
 void
-show_stanza(XMPPStanza *stanza)
+stanza_show(XMPPStanza *stanza)
 {
     printf("NAME   : %s\n", stanza->name);
 
@@ -27,8 +29,26 @@ show_stanza(XMPPStanza *stanza)
         GList *curr_child = stanza->children;
         while (curr_child) {
             XMPPStanza *child = curr_child->data;
-            show_stanza(child);
+            stanza_show(child);
             curr_child = g_list_next(curr_child);
         }
     }
+}
+
+void
+stanza_show_all(void)
+{
+    GList *curr = stanzas;
+    while (curr) {
+        XMPPStanza *stanza = curr->data;
+        stanza_show(stanza);
+        printf("\n");
+        curr = g_list_next(curr);
+    }
+}
+
+void
+stanza_add(XMPPStanza *stanza)
+{
+    stanzas = g_list_append(stanzas, stanza);
 }

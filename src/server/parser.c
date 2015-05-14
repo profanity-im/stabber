@@ -9,26 +9,14 @@
 
 static int depth = 0;
 static int do_reset = 0;
+
 static XML_Parser parser;
+static XMPPClient *xmppclient;
+static XMPPStanza *curr_stanza;
+
 static stream_start_func stream_start_cb = NULL;
 static stream_end_func stream_end_cb = NULL;
 static auth_func auth_cb = NULL;
-static XMPPClient *xmppclient;
-
-static XMPPStanza *curr_stanza;
-static GList *stanzas;
-
-void
-parser_show_stanzas(void)
-{
-    GList *curr = stanzas;
-    while (curr) {
-        XMPPStanza *stanza = curr->data;
-        show_stanza(stanza);
-        printf("\n");
-        curr = g_list_next(curr);
-    }
-}
 
 static void
 start_element(void *data, const char *element, const char **attribute)
@@ -76,7 +64,7 @@ end_element(void *data, const char *element)
         curr_stanza->parent->children = g_list_append(curr_stanza->parent->children, curr_stanza);
         curr_stanza = curr_stanza->parent;
     } else {
-        stanzas = g_list_append(stanzas, curr_stanza);
+        stanza_add(curr_stanza);
     }
 
     if (depth == 0) {
