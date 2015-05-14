@@ -14,7 +14,6 @@
 #define STREAM_RESP  "<stream:stream from=\"localhost\" id=\"stream1\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define FEATURES "<stream:features></stream:features>"
 
-#define AUTH_REQ "<iq id=\"_xmpp_auth1\" type=\"set\"><query xmlns=\"jabber:iq:auth\"><username>stabber</username><password>password</password><resource>profanity</resource></query></iq>"
 #define AUTH_RESP "<iq id=\"_xmpp_auth1\" type=\"result\"/>"
 
 #define STREAM_END "</stream:stream>"
@@ -58,6 +57,27 @@ listen_for_xmlstart(XMPPClient *client)
     return 0;
 }
 
+void
+send_to(XMPPClient *client, const char * const stanza)
+{
+    int sent = 0;
+    int to_send = strlen(stanza);
+    char *marker = (char*)stanza;
+    while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
+        to_send -= sent;
+        marker += sent;
+    }
+    printf("SENT: %s\n", stanza);
+    fflush(stdout);
+}
+
+void
+stream_end(XMPPClient *client)
+{
+    printf("\n--> Stream end callback fired\n");
+    send_to(client, STREAM_END);
+}
+
 int
 listen_to(XMPPClient *client)
 {
@@ -73,6 +93,10 @@ listen_to(XMPPClient *client)
         fflush(stdout);
         parser_reset();
         g_string_append_len(stream, buf, read_size);
+        if (g_str_has_suffix(stream->str, "</stream:stream>")) {
+            stream_end(client);
+            break;
+        }
         memset(buf, 0, sizeof(buf));
     }
 
@@ -95,20 +119,6 @@ listen_to(XMPPClient *client)
 }
 
 void
-send_to(XMPPClient *client, const char * const stanza)
-{
-    int sent = 0;
-    int to_send = strlen(stanza);
-    char *marker = (char*)stanza;
-    while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
-        to_send -= sent;
-        marker += sent;
-    }
-    printf("SENT: %s\n", stanza);
-    fflush(stdout);
-}
-
-void
 stream_start_callback(void *userdata)
 {
     printf("\n--> Stream start callback fired\n");
@@ -126,14 +136,6 @@ auth_callback(void *userdata)
     XMPPClient *client = (XMPPClient*)userdata;
     send_to(client, AUTH_RESP);
     printf("RECV: ");
-}
-
-void
-stream_end_callback(void *userdata)
-{
-    printf("\n--> Stream end callback fired\n");
-    XMPPClient *client = (XMPPClient*)userdata;
-    send_to(client, STREAM_END);
 }
 
 int main(int argc , char *argv[])
@@ -212,7 +214,7 @@ int main(int argc , char *argv[])
     }
 
     XMPPClient *client = xmppclient_new(client_addr, client_socket);
-    parser_init(client, stream_start_callback, stream_end_callback, auth_callback);
+    parser_init(client, stream_start_callback, auth_callback);
     printf("RECV: ");
     int res = listen_for_xmlstart(client);
     if (res == -1) {
@@ -224,31 +226,7 @@ int main(int argc , char *argv[])
 
     stanza_show_all();
 
-//
-//    res = listen_for(client, STREAM_REQ);
-//    if (res == -1) {
-//        return;
-//    }
-//
-//    send_to(client, STREAM_RESP);
-//    send_to(client, FEATURES);
-//
-//    res = listen_for(client, AUTH_REQ);
-//    if (res == -1) {
-//        return;
-//    }
-//
-//    send_to(client, AUTH_RESP);
-//
-//    res = debug_client(client);
-//    if (res == -1) {
-//        return;
-//    }
-//
-//    printf("\nEnd stream receieved\n");
-//    xmppclient_end_session(client);
-//    fflush(stdout);
-//    return;
+    xmppclient_end_session(client);
 
     parser_close();
 

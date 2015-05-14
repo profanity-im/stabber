@@ -4,10 +4,9 @@
 #include "server/xmppclient.h"
 
 typedef void (*stream_start_func)(void * const userdata);
-typedef void (*stream_end_func)(void * const userdata);
 typedef void (*auth_func)(void * const userdata);
 
-void parser_init(XMPPClient *client, stream_start_func startcb, stream_end_func endcb, auth_func authcb);
+void parser_init(XMPPClient *client, stream_start_func startcb, auth_func authcb);
 int parser_feed(char *chunk, int len);
 void parser_close(void);
 void parser_reset(void);

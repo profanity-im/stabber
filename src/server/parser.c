@@ -15,7 +15,6 @@ static XMPPClient *xmppclient;
 static XMPPStanza *curr_stanza;
 
 static stream_start_func stream_start_cb = NULL;
-static stream_end_func stream_end_cb = NULL;
 static auth_func auth_cb = NULL;
 
 static void
@@ -33,6 +32,7 @@ start_element(void *data, const char *element, const char **attribute)
     stanza->name = strdup(element);
     stanza->content = NULL;
     stanza->children = NULL;
+    stanza->attrs = NULL;
     if (attribute[0]) {
         for (i = 0; attribute[i]; i += 2) {
             XMPPAttr *attr = malloc(sizeof(XMPPAttr));
@@ -40,8 +40,6 @@ start_element(void *data, const char *element, const char **attribute)
             attr->value = strdup(attribute[i+1]);
             stanza->attrs = g_list_append(stanza->attrs, attr);
         }
-    } else {
-        stanza->attrs = NULL;
     }
 
     if (depth == 0) {
@@ -59,6 +57,10 @@ static void
 end_element(void *data, const char *element)
 {
     depth--;
+
+    if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
+        auth_cb(xmppclient);
+    }
 
     if (depth > 0) {
         stanza_add_child(curr_stanza->parent, curr_stanza);
@@ -83,11 +85,10 @@ handle_data(void *data, const char *content, int length)
 }
 
 void
-parser_init(XMPPClient *client, stream_start_func startcb, stream_end_func endcb, auth_func authcb)
+parser_init(XMPPClient *client, stream_start_func startcb, auth_func authcb)
 {
     xmppclient = client;
     stream_start_cb = startcb;
-    stream_end_cb = endcb;
     auth_cb = authcb;
 
     parser = XML_ParserCreate(NULL);
@@ -112,7 +113,7 @@ parser_reset(void)
 {
     if (do_reset == 1) {
         parser_close();
-        parser_init(xmppclient, stream_start_cb, stream_end_cb, auth_cb);
+        parser_init(xmppclient, stream_start_cb, auth_cb);
         do_reset = 0;
     }
 }
