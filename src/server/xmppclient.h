@@ -7,7 +7,9 @@ typedef struct xmpp_client_t {
     char *ip;
     int port;
     int sock;
-    char *nickname;
+    char *username;
+    char *password;
+    char *resource;
 } XMPPClient;
 
 XMPPClient* xmppclient_new(struct sockaddr_in client_addr, int socket);

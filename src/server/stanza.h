@@ -19,5 +19,6 @@ void stanza_show_all(void);
 void stanza_add(XMPPStanza *stanza);
 void stanza_add_child(XMPPStanza *parent, XMPPStanza *child);
 XMPPStanza* stanza_get_child_by_ns(XMPPStanza *stanza, char *ns);
+XMPPStanza* stanza_get_child_by_name(XMPPStanza *stanza, char *name);
 
 #endif

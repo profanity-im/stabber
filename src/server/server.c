@@ -119,10 +119,9 @@ listen_to(XMPPClient *client)
 }
 
 void
-stream_start_callback(void *userdata)
+stream_start_callback(XMPPClient *client)
 {
     printf("\n--> Stream start callback fired\n");
-    XMPPClient *client = (XMPPClient*)userdata;
     send_to(client, XML_START);
     send_to(client, STREAM_RESP);
     send_to(client, FEATURES);
@@ -130,10 +129,18 @@ stream_start_callback(void *userdata)
 }
 
 void
-auth_callback(void *userdata)
+auth_callback(XMPPStanza *stanza, XMPPClient *client)
 {
     printf("\n--> Auth callback fired\n");
-    XMPPClient *client = (XMPPClient*)userdata;
+    XMPPStanza *query = stanza_get_child_by_ns(stanza, "jabber:iq:auth");
+    XMPPStanza *username = stanza_get_child_by_name(query, "username");
+    XMPPStanza *password = stanza_get_child_by_name(query, "password");
+    XMPPStanza *resource = stanza_get_child_by_name(query, "resource");
+
+    client->username = strdup(username->content->str);
+    client->password = strdup(password->content->str);
+    client->resource = strdup(resource->content->str);
+
     send_to(client, AUTH_RESP);
     printf("RECV: ");
 }

@@ -59,7 +59,7 @@ end_element(void *data, const char *element)
     depth--;
 
     if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
-        auth_cb(xmppclient);
+        auth_cb(curr_stanza, xmppclient);
     }
 
     if (depth > 0) {

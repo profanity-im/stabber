@@ -91,3 +91,27 @@ stanza_get_child_by_ns(XMPPStanza *stanza, char *ns)
 
     return NULL;
 }
+
+XMPPStanza*
+stanza_get_child_by_name(XMPPStanza *stanza, char *name)
+{
+    if (!stanza) {
+        return NULL;
+    }
+
+    if (!stanza->children) {
+        return NULL;
+    }
+
+    GList *curr_child = stanza->children;
+    while (curr_child) {
+        XMPPStanza *child = curr_child->data;
+        if (g_strcmp0(child->name, name) == 0) {
+            return child;
+        }
+
+        curr_child = g_list_next(curr_child);
+    }
+
+    return NULL;
+}
