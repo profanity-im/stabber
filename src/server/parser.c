@@ -5,6 +5,7 @@
 
 #include "server/parser.h"
 #include "server/xmppclient.h"
+#include "server/stanza.h"
 
 static int depth = 0;
 static int do_reset = 0;
@@ -14,51 +15,8 @@ static stream_end_func stream_end_cb = NULL;
 static auth_func auth_cb = NULL;
 static XMPPClient *xmppclient;
 
-typedef struct xmpp_attr_t {
-    const char *name;
-    const char *value;
-} XMPPAttr;
-
-typedef struct xmpp_stanza_t {
-    const char *name;
-    GList *attrs;
-    GList *children;
-    GString *content;
-    struct xmpp_stanza_t *parent;
-} XMPPStanza;
-
 static XMPPStanza *curr_stanza;
 static GList *stanzas;
-
-void
-show_stanza(XMPPStanza *stanza)
-{
-    printf("NAME   : %s\n", stanza->name);
-
-    if (stanza->content && stanza->content->len > 0) {
-        printf("CONTENT: %s\n", stanza->content->str);
-    }
-
-    if (stanza->attrs) {
-        GList *curr_attr = stanza->attrs;
-        while (curr_attr) {
-            XMPPAttr *attr = curr_attr->data;
-            printf("ATTR   : %s='%s'\n", attr->name, attr->value);
-
-            curr_attr = g_list_next(curr_attr);
-        }
-    }
-
-    if (stanza->children) {
-        printf("CHILDREN:\n");
-        GList *curr_child = stanza->children;
-        while (curr_child) {
-            XMPPStanza *child = curr_child->data;
-            show_stanza(child);
-            curr_child = g_list_next(curr_child);
-        }
-    }
-}
 
 void
 parser_show_stanzas(void)

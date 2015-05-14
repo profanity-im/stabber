@@ -1,5 +1,5 @@
 core
-server
+stabber
 Makefile
 Makefile.in
 aclocal.m4
@@ -13,10 +13,7 @@ src/config.h.in
 src/config.h.in~
 src/server/.deps/
 src/server/.dirstamp
-src/server/clients.o
-src/server/server.o
-src/server/parser.o
-src/server/xmppclient.o
+*.o
 
 src/stamp-h1
 
