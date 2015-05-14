@@ -9,12 +9,14 @@
 #include "server/parser.h"
 
 #define XML_START "<?xml version=\"1.0\"?>"
-#define STREAM_REQ "<stream:stream to=\"localhost\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
-#define STREAM_RESP  "<?xml version=\"1.0\"?><stream:stream from=\"localhost\" id=\"stream1\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
+
+#define STREAM_RESP  "<stream:stream from=\"localhost\" id=\"stream1\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define FEATURES "<stream:features></stream:features>"
+
 #define AUTH_REQ "<iq id=\"_xmpp_auth1\" type=\"set\"><query xmlns=\"jabber:iq:auth\"><username>stabber</username><password>password</password><resource>profanity</resource></query></iq>"
 #define AUTH_RESP "<iq id=\"_xmpp_auth1\" type=\"result\"/>"
-#define END_STREAM "</stream:stream>"
+
+#define STREAM_END "</stream:stream>"
 
 int
 listen_for_xmlstart(XMPPClient *client)
@@ -26,6 +28,8 @@ listen_for_xmlstart(XMPPClient *client)
     GString *stream = g_string_new("");
     errno = 0;
     while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
+        printf("%c", buf[0]);
+        fflush(stdout);
         g_string_append_len(stream, buf, read_size);
         memset(buf, 0, sizeof(buf));
         if (g_strcmp0(stream->str, XML_START) == 0) {
@@ -48,13 +52,13 @@ listen_for_xmlstart(XMPPClient *client)
         return -1;
     }
 
-    printf("RECV: %s\n", XML_START);
+    printf("\n");
     fflush(stdout);
     return 0;
 }
 
 int
-listen_for(XMPPClient *client, const char * const stanza)
+listen_to(XMPPClient *client)
 {
     int read_size;
     char buf[2];
@@ -63,11 +67,12 @@ listen_for(XMPPClient *client, const char * const stanza)
     GString *stream = g_string_new("");
     errno = 0;
     while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
+        printf("%c", buf[0]);
+        parser_feed(buf, 1);
+        fflush(stdout);
+        parser_reset();
         g_string_append_len(stream, buf, read_size);
         memset(buf, 0, sizeof(buf));
-        if (g_strcmp0(stream->str, stanza) == 0) {
-            break;
-        }
     }
 
     // error
@@ -85,8 +90,6 @@ listen_for(XMPPClient *client, const char * const stanza)
         return -1;
     }
 
-    printf("RECV: %s\n", stanza);
-    fflush(stdout);
     return 0;
 }
 
@@ -104,75 +107,32 @@ send_to(XMPPClient *client, const char * const stanza)
     fflush(stdout);
 }
 
-int
-debug_client(XMPPClient *client)
+void
+stream_start_callback(void *userdata)
 {
-    int read_size;
-    char buf[2];
-    memset(buf, 0, sizeof(buf));
-
-    GString *stream = g_string_new("");
-    errno = 0;
-    while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
-        parser_feed(buf, 1);
-        fflush(stdout);
-        parser_reset();
-        g_string_append_len(stream, buf, read_size);
-        memset(buf, 0, sizeof(buf));
-        if (g_str_has_suffix(stream->str, END_STREAM)) {
-            break;
-        }
-    }
-
-    // error
-    if (read_size == -1) {
-        perror("Error receiving on connection");
-        xmppclient_end_session(client);
-        g_string_free(stream, TRUE);
-        return -1;
-
-    // client closed
-    } else if (read_size == 0) {
-        printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
-        xmppclient_end_session(client);
-        g_string_free(stream, TRUE);
-        return -1;
-    }
-
-    return 0;
-}
-
-void connection_handler(XMPPClient *client)
-{
-    int res = listen_for_xmlstart(client);
-    if (res == -1) {
-        return;
-    }
-
-    res = listen_for(client, STREAM_REQ);
-    if (res == -1) {
-        return;
-    }
-
+    printf("\n--> Stream start callback fired\n");
+    XMPPClient *client = (XMPPClient*)userdata;
+    send_to(client, XML_START);
     send_to(client, STREAM_RESP);
     send_to(client, FEATURES);
+    printf("RECV: ");
+}
 
-    res = listen_for(client, AUTH_REQ);
-    if (res == -1) {
-        return;
-    }
-
+void
+auth_callback(void *userdata)
+{
+    printf("\n--> Auth callback fired\n");
+    XMPPClient *client = (XMPPClient*)userdata;
     send_to(client, AUTH_RESP);
+    printf("RECV: ");
+}
 
-    res = debug_client(client);
-    if (res == -1) {
-        return;
-    }
-
-    printf("\nEnd stream receieved\n");
-    xmppclient_end_session(client);
-    fflush(stdout);
-    return;
+void
+stream_end_callback(void *userdata)
+{
+    printf("\n--> Stream end callback fired\n");
+    XMPPClient *client = (XMPPClient*)userdata;
+    send_to(client, STREAM_END);
 }
 
 int main(int argc , char *argv[])
@@ -239,8 +199,6 @@ int main(int argc , char *argv[])
         return 0;
     }
 
-    parser_init();
-
     puts("Waiting for incoming connections...");
 
     // connection accept
@@ -253,8 +211,43 @@ int main(int argc , char *argv[])
     }
 
     XMPPClient *client = xmppclient_new(client_addr, client_socket);
+    parser_init(client, stream_start_callback, stream_end_callback, auth_callback);
+    printf("RECV: ");
+    int res = listen_for_xmlstart(client);
+    if (res == -1) {
+        return 0;
+    }
 
-    connection_handler(client);
+    printf("RECV: ");
+    listen_to(client);
+
+    parser_show_stanzas();
+
+//
+//    res = listen_for(client, STREAM_REQ);
+//    if (res == -1) {
+//        return;
+//    }
+//
+//    send_to(client, STREAM_RESP);
+//    send_to(client, FEATURES);
+//
+//    res = listen_for(client, AUTH_REQ);
+//    if (res == -1) {
+//        return;
+//    }
+//
+//    send_to(client, AUTH_RESP);
+//
+//    res = debug_client(client);
+//    if (res == -1) {
+//        return;
+//    }
+//
+//    printf("\nEnd stream receieved\n");
+//    xmppclient_end_session(client);
+//    fflush(stdout);
+//    return;
 
     parser_close();
 

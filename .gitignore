@@ -23,4 +23,6 @@ src/stamp-h1
 .codelite/
 stabber.project
 stabber.workspace
+compile_commands.json
+stabber.tags
 
