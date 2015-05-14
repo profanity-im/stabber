@@ -61,7 +61,7 @@ end_element(void *data, const char *element)
     depth--;
 
     if (depth > 0) {
-        curr_stanza->parent->children = g_list_append(curr_stanza->parent->children, curr_stanza);
+        stanza_add_child(curr_stanza->parent, curr_stanza);
         curr_stanza = curr_stanza->parent;
     } else {
         stanza_add(curr_stanza);

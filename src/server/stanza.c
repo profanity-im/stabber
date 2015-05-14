@@ -52,3 +52,9 @@ stanza_add(XMPPStanza *stanza)
 {
     stanzas = g_list_append(stanzas, stanza);
 }
+
+void
+stanza_add_child(XMPPStanza *parent, XMPPStanza *child)
+{
+    parent->children = g_list_append(parent->children, child);
+}

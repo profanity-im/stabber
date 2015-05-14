@@ -17,5 +17,6 @@ typedef struct xmpp_stanza_t {
 void stanza_show(XMPPStanza *stanza);
 void stanza_show_all(void);
 void stanza_add(XMPPStanza *stanza);
+void stanza_add_child(XMPPStanza *parent, XMPPStanza *child);
 
 #endif
