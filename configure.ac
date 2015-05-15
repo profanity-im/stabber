@@ -3,10 +3,10 @@
 
 AC_INIT([stabber], [0.1.0], [boothj5web@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR([src/server/server.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
+LT_INIT
 
 ### Checks for programs.
 AC_PROG_CC

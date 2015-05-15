@@ -23,3 +23,18 @@ stabber.workspace
 compile_commands.json
 stabber.tags
 
+.deps/
+.libs/
+libstabber.la
+libtool
+m4/
+runstabber
+src/.deps/
+src/.dirstamp
+src/server/parser.lo
+src/server/server.lo
+src/server/stanza.lo
+src/server/xmppclient.lo
+src/client/.dirstamp
+src/client/stabber.lo
+

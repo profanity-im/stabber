@@ -8,6 +8,7 @@
 #include "server/xmppclient.h"
 #include "server/parser.h"
 #include "server/stanza.h"
+#include "server/server.h"
 
 #define XML_START "<?xml version=\"1.0\"?>"
 
@@ -145,41 +146,12 @@ auth_callback(XMPPStanza *stanza, XMPPClient *client)
     printf("RECV: ");
 }
 
-int main(int argc , char *argv[])
+int
+server_run(int port)
 {
-    int port = 0;
-
-    GOptionEntry entries[] =
-    {
-        { "port", 'p', 0, G_OPTION_ARG_INT, &port, "Listen port", NULL },
-        { NULL }
-    };
-
-    GError *error = NULL;
-    GOptionContext *context;
-
-    context = g_option_context_new(NULL);
-    g_option_context_add_main_entries(context, entries, NULL);
-    if (!g_option_context_parse(context, &argc, &argv, &error)) {
-        g_print("%s\n", error->message);
-        g_option_context_free(context);
-        g_error_free(error);
-        return 1;
-    }
-
-    g_option_context_free(context);
-
-    if (port == 0) {
-        port = 5222;
-    }
+    printf("Starting on port: %d...\n", port);
 
     struct sockaddr_in server_addr, client_addr;
-
-    if (argc == 2) {
-        port = atoi(argv[1]);
-    }
-
-    printf("Starting on port: %d...\n", port);
 
     // create socket
     errno = 0;
@@ -240,5 +212,43 @@ int main(int argc , char *argv[])
     while (recv(listen_socket, NULL, 1, 0) > 0) {}
     shutdown(listen_socket, 2);
     close(listen_socket);
-    return 0;
+
+    return 1;
+}
+
+int
+main(int argc , char *argv[])
+{
+    int port = 0;
+
+    GOptionEntry entries[] =
+    {
+        { "port", 'p', 0, G_OPTION_ARG_INT, &port, "Listen port", NULL },
+        { NULL }
+    };
+
+    GError *error = NULL;
+    GOptionContext *context;
+
+    context = g_option_context_new(NULL);
+    g_option_context_add_main_entries(context, entries, NULL);
+    if (!g_option_context_parse(context, &argc, &argv, &error)) {
+        g_print("%s\n", error->message);
+        g_option_context_free(context);
+        g_error_free(error);
+        return 1;
+    }
+
+    g_option_context_free(context);
+
+    if (port == 0) {
+        port = 5230;
+    }
+
+
+    if (argc == 2) {
+        port = atoi(argv[1]);
+    }
+
+    return server_run(port);
 }
