@@ -93,7 +93,7 @@ listen_to(XMPPClient *client)
         fflush(stdout);
         parser_reset();
         g_string_append_len(stream, buf, read_size);
-        if (g_str_has_suffix(stream->str, "</stream:stream>")) {
+        if (g_str_has_suffix(stream->str, STREAM_END)) {
             stream_end(client);
             break;
         }

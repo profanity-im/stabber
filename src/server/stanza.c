@@ -1,9 +1,32 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <glib.h>
 
 #include "server/stanza.h"
 
 static GList *stanzas;
+
+XMPPStanza*
+stanza_new(const char *name, const char **attributes)
+{
+    XMPPStanza *stanza = malloc(sizeof(XMPPStanza));
+    stanza->name = strdup(name);
+    stanza->content = NULL;
+    stanza->children = NULL;
+    stanza->attrs = NULL;
+    if (attributes[0]) {
+        int i;
+        for (i = 0; attributes[i]; i += 2) {
+            XMPPAttr *attr = malloc(sizeof(XMPPAttr));
+            attr->name = strdup(attributes[i]);
+            attr->value = strdup(attributes[i+1]);
+            stanza->attrs = g_list_append(stanza->attrs, attr);
+        }
+    }
+
+    return stanza;
+}
 
 void
 stanza_show(XMPPStanza *stanza)

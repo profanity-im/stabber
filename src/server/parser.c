@@ -18,29 +18,15 @@ static stream_start_func stream_start_cb = NULL;
 static auth_func auth_cb = NULL;
 
 static void
-start_element(void *data, const char *element, const char **attribute)
+start_element(void *data, const char *element, const char **attributes)
 {
-    int i;
-
     if (g_strcmp0(element, "stream:stream") == 0) {
         stream_start_cb(xmppclient);
         do_reset = 1;
         return;
     }
 
-    XMPPStanza *stanza = malloc(sizeof(XMPPStanza));
-    stanza->name = strdup(element);
-    stanza->content = NULL;
-    stanza->children = NULL;
-    stanza->attrs = NULL;
-    if (attribute[0]) {
-        for (i = 0; attribute[i]; i += 2) {
-            XMPPAttr *attr = malloc(sizeof(XMPPAttr));
-            attr->name = strdup(attribute[i]);
-            attr->value = strdup(attribute[i+1]);
-            stanza->attrs = g_list_append(stanza->attrs, attr);
-        }
-    }
+    XMPPStanza *stanza = stanza_new(element, attributes);
 
     if (depth == 0) {
         curr_stanza = stanza;
