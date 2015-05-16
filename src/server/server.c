@@ -28,7 +28,7 @@ static void _shutdown(void);
 static int listen_socket;
 
 int
-listen_for_xmlstart(XMPPClient *client)
+listen_for_xmlstart(void)
 {
     int read_size;
     char buf[2];
@@ -68,7 +68,7 @@ listen_for_xmlstart(XMPPClient *client)
 }
 
 void
-send_to(XMPPClient *client, const char * const stanza)
+send_to(const char * const stanza)
 {
     int sent = 0;
     int to_send = strlen(stanza);
@@ -81,15 +81,15 @@ send_to(XMPPClient *client, const char * const stanza)
 }
 
 void
-stream_end(XMPPClient *client)
+stream_end(void)
 {
     log_print_chars("\n");
     log_println("--> Stream end callback fired");
-    send_to(client, STREAM_END);
+    send_to(STREAM_END);
 }
 
 int
-listen_to(XMPPClient *client)
+listen_to(void)
 {
     int read_size;
     char buf[2];
@@ -103,7 +103,7 @@ listen_to(XMPPClient *client)
         parser_reset();
         g_string_append_len(stream, buf, read_size);
         if (g_str_has_suffix(stream->str, STREAM_END)) {
-            stream_end(client);
+            stream_end();
             break;
         }
         memset(buf, 0, sizeof(buf));
@@ -132,18 +132,18 @@ listen_to(XMPPClient *client)
 }
 
 void
-stream_start_callback(XMPPClient *client)
+stream_start_callback(void)
 {
     log_print_chars("\n");
     log_println("--> Stream start callback fired");
-    send_to(client, XML_START);
-    send_to(client, STREAM_RESP);
-    send_to(client, FEATURES);
+    send_to(XML_START);
+    send_to(STREAM_RESP);
+    send_to(FEATURES);
     log_print("RECV: ");
 }
 
 void
-auth_callback(XMPPStanza *stanza, XMPPClient *client)
+auth_callback(XMPPStanza *stanza)
 {
     log_print_chars("\n");
     log_println("--> Auth callback fired");
@@ -157,23 +157,23 @@ auth_callback(XMPPStanza *stanza, XMPPClient *client)
     client->resource = strdup(resource->content->str);
 
     if (g_strcmp0(client->password, prime_get_passwd()) != 0) {
-        send_to(client, AUTH_FAIL);
-        send_to(client, STREAM_END);
+        send_to(AUTH_FAIL);
+        send_to(STREAM_END);
         exit(0);
     }
 
-    send_to(client, AUTH_RESP);
+    send_to(AUTH_RESP);
     log_print("RECV: ");
 }
 
 void
-id_callback(const char *id, XMPPClient *client)
+id_callback(const char *id)
 {
     char *stream = prime_get_for(id);
     if (stream) {
         log_print_chars("\n");
         log_println("--> ID callback fired for '%s'", id);
-        send_to(client, stream);
+        send_to(stream);
         log_print("RECV: ");
     }
 }
@@ -236,15 +236,15 @@ server_run(int port)
     }
 
     client = xmppclient_new(client_addr, client_socket);
-    parser_init(client, stream_start_callback, auth_callback, id_callback);
+    parser_init(stream_start_callback, auth_callback, id_callback);
     log_print("RECV: ");
-    int res = listen_for_xmlstart(client);
+    int res = listen_for_xmlstart();
     if (res == -1) {
         return 0;
     }
 
     log_print("RECV: ");
-    listen_to(client);
+    listen_to();
     return 1;
 }
 

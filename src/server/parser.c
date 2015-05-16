@@ -4,14 +4,12 @@
 #include <glib.h>
 
 #include "server/parser.h"
-#include "server/xmppclient.h"
 #include "server/stanza.h"
 
 static int depth = 0;
 static int do_reset = 0;
 
 static XML_Parser parser;
-static XMPPClient *xmppclient;
 static XMPPStanza *curr_stanza;
 
 static stream_start_func stream_start_cb = NULL;
@@ -22,7 +20,7 @@ static void
 start_element(void *data, const char *element, const char **attributes)
 {
     if (g_strcmp0(element, "stream:stream") == 0) {
-        stream_start_cb(xmppclient);
+        stream_start_cb();
         do_reset = 1;
         return;
     }
@@ -51,11 +49,11 @@ end_element(void *data, const char *element)
     } else {
         stanza_add(curr_stanza);
         if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
-            auth_cb(curr_stanza, xmppclient);
+            auth_cb(curr_stanza);
         } else {
             const char *id = stanza_get_id(curr_stanza);
             if (id) {
-                id_cb(id, xmppclient);
+                id_cb(id);
             }
         }
 
@@ -74,9 +72,8 @@ handle_data(void *data, const char *content, int length)
 }
 
 void
-parser_init(XMPPClient *client, stream_start_func startcb, auth_func authcb, id_func idcb)
+parser_init(stream_start_func startcb, auth_func authcb, id_func idcb)
 {
-    xmppclient = client;
     stream_start_cb = startcb;
     auth_cb = authcb;
     id_cb = idcb;
@@ -103,7 +100,7 @@ parser_reset(void)
 {
     if (do_reset == 1) {
         parser_close();
-        parser_init(xmppclient, stream_start_cb, auth_cb, id_cb);
+        parser_init(stream_start_cb, auth_cb, id_cb);
         do_reset = 0;
     }
 }
