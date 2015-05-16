@@ -46,3 +46,10 @@ stbbr_auth_passwd(char *password)
     prime_required_passwd(password);
     return 1;
 }
+
+int
+stbbr_for(char *id, char *stanza)
+{
+    prime_for(id, stanza);
+    return 1;
+}

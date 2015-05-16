@@ -2,5 +2,4 @@
 #define __H_SERVER
 
 int server_run(int port);
-
 #endif

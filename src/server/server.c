@@ -166,6 +166,18 @@ auth_callback(XMPPStanza *stanza, XMPPClient *client)
     log_print("RECV: ");
 }
 
+void
+id_callback(const char *id, XMPPClient *client)
+{
+    char *stanza_ret = prime_get_for(id);
+    if (stanza_ret) {
+        log_print_chars("\n");
+        log_println("--> ID callback fired for '%s'", id);
+        send_to(client, stanza_ret);
+        log_print("RECV: ");
+    }
+}
+
 int
 server_run(int port)
 {
@@ -224,7 +236,7 @@ server_run(int port)
     }
 
     client = xmppclient_new(client_addr, client_socket);
-    parser_init(client, stream_start_callback, auth_callback);
+    parser_init(client, stream_start_callback, auth_callback, id_callback);
     log_print("RECV: ");
     int res = listen_for_xmlstart(client);
     if (res == -1) {
