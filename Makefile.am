@@ -5,6 +5,7 @@ sources = \
 	src/server/xmppclient.c src/server/xmppclient.h \
 	src/server/parser.c src/server/parser.h \
     src/server/stanza.c src/server/stanza.h \
+    src/server/log.c src/server/log.h \
     src/client/stabber.c src/client/stabber.h
 
 libstabber_la_LDFLAGS = -export-symbols-regex '^stabber_'

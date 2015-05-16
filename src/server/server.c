@@ -9,6 +9,7 @@
 #include "server/parser.h"
 #include "server/stanza.h"
 #include "server/server.h"
+#include "server/log.h"
 
 #define XML_START "<?xml version=\"1.0\"?>"
 
@@ -29,8 +30,7 @@ listen_for_xmlstart(XMPPClient *client)
     GString *stream = g_string_new("");
     errno = 0;
     while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
-        printf("%c", buf[0]);
-        fflush(stdout);
+        log_print_chars("%c", buf[0]);
         g_string_append_len(stream, buf, read_size);
         memset(buf, 0, sizeof(buf));
         if (g_strcmp0(stream->str, XML_START) == 0) {
@@ -40,21 +40,23 @@ listen_for_xmlstart(XMPPClient *client)
 
     // error
     if (read_size == -1) {
-        perror("Error receiving on connection");
+        char *errmsg = strerror(errno);
+        log_println("");
+        log_println("Error receiving on connection: %s", errmsg);
+        free(errmsg);
         xmppclient_end_session(client);
         g_string_free(stream, TRUE);
         return -1;
 
     // client closed
     } else if (read_size == 0) {
-        printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+        log_println("");
+        log_println("%s:%d - Client disconnected.", client->ip, client->port);
         xmppclient_end_session(client);
         g_string_free(stream, TRUE);
         return -1;
     }
 
-    printf("\n");
-    fflush(stdout);
     return 0;
 }
 
@@ -68,14 +70,14 @@ send_to(XMPPClient *client, const char * const stanza)
         to_send -= sent;
         marker += sent;
     }
-    printf("SENT: %s\n", stanza);
-    fflush(stdout);
+    log_println("SENT: %s", stanza);
 }
 
 void
 stream_end(XMPPClient *client)
 {
-    printf("\n--> Stream end callback fired\n");
+    log_print_chars("\n");
+    log_println("--> Stream end callback fired");
     send_to(client, STREAM_END);
 }
 
@@ -89,9 +91,8 @@ listen_to(XMPPClient *client)
     GString *stream = g_string_new("");
     errno = 0;
     while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
-        printf("%c", buf[0]);
+        log_print_chars("%c", buf[0]);
         parser_feed(buf, 1);
-        fflush(stdout);
         parser_reset();
         g_string_append_len(stream, buf, read_size);
         if (g_str_has_suffix(stream->str, STREAM_END)) {
@@ -103,14 +104,18 @@ listen_to(XMPPClient *client)
 
     // error
     if (read_size == -1) {
-        perror("Error receiving on connection");
+        char *errmsg = strerror(errno);
+        log_println("");
+        log_println("Error receiving on connection: %s", errmsg);
+        free(errmsg);
         xmppclient_end_session(client);
         g_string_free(stream, TRUE);
         return -1;
 
     // client closed
     } else if (read_size == 0) {
-        printf("\n%s:%d - Client disconnected.\n", client->ip, client->port);
+        log_println("");
+        log_println("%s:%d - Client disconnected.", client->ip, client->port);
         xmppclient_end_session(client);
         g_string_free(stream, TRUE);
         return -1;
@@ -122,17 +127,19 @@ listen_to(XMPPClient *client)
 void
 stream_start_callback(XMPPClient *client)
 {
-    printf("\n--> Stream start callback fired\n");
+    log_print_chars("\n");
+    log_println("--> Stream start callback fired");
     send_to(client, XML_START);
     send_to(client, STREAM_RESP);
     send_to(client, FEATURES);
-    printf("RECV: ");
+    log_print("RECV: ");
 }
 
 void
 auth_callback(XMPPStanza *stanza, XMPPClient *client)
 {
-    printf("\n--> Auth callback fired\n");
+    log_print_chars("\n");
+    log_println("--> Auth callback fired");
     XMPPStanza *query = stanza_get_child_by_ns(stanza, "jabber:iq:auth");
     XMPPStanza *username = stanza_get_child_by_name(query, "username");
     XMPPStanza *password = stanza_get_child_by_name(query, "password");
@@ -143,13 +150,14 @@ auth_callback(XMPPStanza *stanza, XMPPClient *client)
     client->resource = strdup(resource->content->str);
 
     send_to(client, AUTH_RESP);
-    printf("RECV: ");
+    log_print("RECV: ");
 }
 
 int
 server_run(int port)
 {
-    printf("Starting on port: %d...\n", port);
+    log_init();
+    log_println("Starting on port: %d...", port);
 
     struct sockaddr_in server_addr, client_addr;
 
@@ -157,7 +165,9 @@ server_run(int port)
     errno = 0;
     int listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // ipv4, tcp, ip
     if (listen_socket == -1) {
-        perror("Could not create socket");
+        char *errmsg = strerror(errno);
+        log_println("Could not create socket: %s", errmsg);
+        free(errmsg);
         return 0;
     }
 
@@ -169,7 +179,9 @@ server_run(int port)
     errno = 0;
     int ret = bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (ret == -1) {
-        perror("Bind failed");
+        char *errmsg = strerror(errno);
+        log_println("Bind failed: %s", errmsg);
+        free(errmsg);
         return 0;
     }
 
@@ -177,30 +189,34 @@ server_run(int port)
     errno = 0;
     ret = listen(listen_socket, 5);
     if (ret == -1) {
-        perror("Listen failed");
+        char *errmsg = strerror(errno);
+        log_println("Listen failed: %s", errmsg);
+        free(errmsg);
         return 0;
     }
 
-    puts("Waiting for incoming connections...");
+    log_println("Waiting for incoming connections...");
 
     // connection accept
     int c = sizeof(struct sockaddr_in);
     errno = 0;
     int client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
     if (client_socket == -1) {
-        perror("Accept failed");
+        char *errmsg = strerror(errno);
+        log_println("Accept failed: %s", errmsg);
+        free(errmsg);
         return 0;
     }
 
     XMPPClient *client = xmppclient_new(client_addr, client_socket);
     parser_init(client, stream_start_callback, auth_callback);
-    printf("RECV: ");
+    log_print("RECV: ");
     int res = listen_for_xmlstart(client);
     if (res == -1) {
         return 0;
     }
 
-    printf("RECV: ");
+    log_print("RECV: ");
     listen_to(client);
 
     stanza_show_all();
@@ -213,42 +229,7 @@ server_run(int port)
     shutdown(listen_socket, 2);
     close(listen_socket);
 
+    log_close();
+
     return 1;
-}
-
-int
-main(int argc , char *argv[])
-{
-    int port = 0;
-
-    GOptionEntry entries[] =
-    {
-        { "port", 'p', 0, G_OPTION_ARG_INT, &port, "Listen port", NULL },
-        { NULL }
-    };
-
-    GError *error = NULL;
-    GOptionContext *context;
-
-    context = g_option_context_new(NULL);
-    g_option_context_add_main_entries(context, entries, NULL);
-    if (!g_option_context_parse(context, &argc, &argv, &error)) {
-        g_print("%s\n", error->message);
-        g_option_context_free(context);
-        g_error_free(error);
-        return 1;
-    }
-
-    g_option_context_free(context);
-
-    if (port == 0) {
-        port = 5230;
-    }
-
-
-    if (argc == 2) {
-        port = atoi(argv[1]);
-    }
-
-    return server_run(port);
 }
