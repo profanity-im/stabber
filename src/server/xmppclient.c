@@ -26,13 +26,16 @@ xmppclient_new(struct sockaddr_in client_addr, int socket)
 void
 xmppclient_end_session(XMPPClient *client)
 {
-    while (recv(client->sock, NULL, 1, 0) > 0) {}
-    shutdown(client->sock, 2);
-    close(client->sock);
-
-    free(client->ip);
-    free(client->username);
-    free(client->password);
-    free(client->resource);
-    free(client);
+    if (client) {
+        if (client->sock) {
+            while (recv(client->sock, NULL, 1, 0) > 0) {}
+            shutdown(client->sock, 2);
+            close(client->sock);
+        }
+        free(client->ip);
+        free(client->username);
+        free(client->password);
+        free(client->resource);
+        free(client);
+    }
 }

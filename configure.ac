@@ -17,6 +17,9 @@ PKG_CHECK_MODULES([glib], [glib-2.0 >= 2.26], [],
 PKG_CHECK_MODULES([expat], [expat >= 2.0.0], [],
     [AC_MSG_ERROR([expat 2.0.0 or higher is required])])
 
+AC_CHECK_LIB([pthread], [main], [],
+    [AC_MSG_ERROR([pthread is required])])
+
 AM_CFLAGS="-Wall -Wno-deprecated-declarations"
 AM_CFLAGS="$AM_CFLAGS -Wunused -Werror"
 AM_CPPFLAGS="$AM_CPPFLAGS $glib_CFLAGS $expat_CFLAGS"

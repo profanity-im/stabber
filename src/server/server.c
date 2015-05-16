@@ -7,6 +7,7 @@
 
 #include "server/xmppclient.h"
 #include "server/parser.h"
+#include "server/prime.h"
 #include "server/stanza.h"
 #include "server/server.h"
 #include "server/log.h"
@@ -17,8 +18,14 @@
 #define FEATURES "<stream:features></stream:features>"
 
 #define AUTH_RESP "<iq id=\"_xmpp_auth1\" type=\"result\"/>"
+#define AUTH_FAIL "<iq id=\"_xmpp_auth1\" type=\"error\"/>"
 
 #define STREAM_END "</stream:stream>"
+
+static XMPPClient *client;
+
+static void _shutdown(void);
+static int listen_socket;
 
 int
 listen_for_xmlstart(XMPPClient *client)
@@ -149,6 +156,12 @@ auth_callback(XMPPStanza *stanza, XMPPClient *client)
     client->password = strdup(password->content->str);
     client->resource = strdup(resource->content->str);
 
+    if (g_strcmp0(client->password, prime_get_passwd()) != 0) {
+        send_to(client, AUTH_FAIL);
+        send_to(client, STREAM_END);
+        exit(0);
+    }
+
     send_to(client, AUTH_RESP);
     log_print("RECV: ");
 }
@@ -159,11 +172,13 @@ server_run(int port)
     log_init();
     log_println("Starting on port: %d...", port);
 
+    atexit(_shutdown);
+
     struct sockaddr_in server_addr, client_addr;
 
     // create socket
     errno = 0;
-    int listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // ipv4, tcp, ip
+    listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // ipv4, tcp, ip
     if (listen_socket == -1) {
         char *errmsg = strerror(errno);
         log_println("Could not create socket: %s", errmsg);
@@ -208,7 +223,7 @@ server_run(int port)
         return 0;
     }
 
-    XMPPClient *client = xmppclient_new(client_addr, client_socket);
+    client = xmppclient_new(client_addr, client_socket);
     parser_init(client, stream_start_callback, auth_callback);
     log_print("RECV: ");
     int res = listen_for_xmlstart(client);
@@ -218,11 +233,14 @@ server_run(int port)
 
     log_print("RECV: ");
     listen_to(client);
+    return 1;
+}
 
+static void
+_shutdown(void)
+{
     stanza_show_all();
-
     xmppclient_end_session(client);
-
     parser_close();
 
     while (recv(listen_socket, NULL, 1, 0) > 0) {}
@@ -230,6 +248,4 @@ server_run(int port)
     close(listen_socket);
 
     log_close();
-
-    return 1;
 }

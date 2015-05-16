@@ -40,3 +40,4 @@ src/client/stabber.lo
 src/server/log.lo
 config.cache
 configure.lineno
+src/server/prime.lo
