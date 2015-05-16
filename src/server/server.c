@@ -169,11 +169,11 @@ auth_callback(XMPPStanza *stanza, XMPPClient *client)
 void
 id_callback(const char *id, XMPPClient *client)
 {
-    char *stanza_ret = prime_get_for(id);
-    if (stanza_ret) {
+    char *stream = prime_get_for(id);
+    if (stream) {
         log_print_chars("\n");
         log_println("--> ID callback fired for '%s'", id);
-        send_to(client, stanza_ret);
+        send_to(client, stream);
         log_print("RECV: ");
     }
 }

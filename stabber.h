@@ -5,6 +5,6 @@ int stbbr_main(int port);
 int stbbr_start(int port);
 
 int stbbr_auth_passwd(char *password);
-void stbbr_for(char *id, char *stanza);
+void stbbr_for(char *id, char *stream);
 
 #endif

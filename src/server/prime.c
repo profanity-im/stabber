@@ -19,13 +19,13 @@ prime_get_passwd(void)
 }
 
 void
-prime_for(char *id, char *stanza)
+prime_for(char *id, char *stream)
 {
     if (!idstubs) {
         idstubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
     }
 
-    g_hash_table_insert(idstubs, strdup(id), strdup(stanza));
+    g_hash_table_insert(idstubs, strdup(id), strdup(stream));
 }
 
 char*

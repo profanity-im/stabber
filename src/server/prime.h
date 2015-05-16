@@ -4,7 +4,7 @@
 void prime_required_passwd(char *password);
 char* prime_get_passwd(void);
 
-int prime_for(char *id, char *stanza);
+int prime_for(char *id, char *stream);
 char* prime_get_for(const char *id);
 
 #endif
