@@ -38,3 +38,5 @@ src/server/xmppclient.lo
 src/client/.dirstamp
 src/client/stabber.lo
 src/server/log.lo
+config.cache
+configure.lineno
