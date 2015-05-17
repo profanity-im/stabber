@@ -14,8 +14,8 @@ AC_PROG_CC
 PKG_CHECK_MODULES([glib], [glib-2.0 >= 2.26], [],
     [AC_MSG_ERROR([glib 2.26 or higher is required])])
 
-PKG_CHECK_MODULES([expat], [expat], [],
-    [AC_MSG_ERROR([expat or higher is required])])
+PKG_CHECK_MODULES([expat], [expat >= 2.0.0], [],
+    [AC_MSG_ERROR([expat 2.0.0 or higher is required])])
 
 AC_CHECK_LIB([pthread], [main], [],
     [AC_MSG_ERROR([pthread is required])])
