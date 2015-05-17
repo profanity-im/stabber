@@ -28,7 +28,7 @@ static void _shutdown(void);
 static int listen_socket;
 
 void
-send_to(const char * const stanza)
+write_stream(const char * const stanza)
 {
     int sent = 0;
     int to_send = strlen(stanza);
@@ -40,16 +40,8 @@ send_to(const char * const stanza)
     log_println("SENT: %s", stanza);
 }
 
-void
-stream_end(void)
-{
-    log_print_chars("\n");
-    log_println("--> Stream end callback fired");
-    send_to(STREAM_END);
-}
-
 int
-listen_to(void)
+read_stream(void)
 {
     int read_size;
     char buf[2];
@@ -62,7 +54,9 @@ listen_to(void)
         parser_feed(buf, 1);
         g_string_append_len(stream, buf, read_size);
         if (g_str_has_suffix(stream->str, STREAM_END)) {
-            stream_end();
+            log_print_chars("\n");
+            log_println("--> Stream end callback fired");
+            write_stream(STREAM_END);
             break;
         }
         memset(buf, 0, sizeof(buf));
@@ -95,9 +89,9 @@ stream_start_callback(void)
 {
     log_print_chars("\n");
     log_println("--> Stream start callback fired");
-    send_to(XML_START);
-    send_to(STREAM_RESP);
-    send_to(FEATURES);
+    write_stream(XML_START);
+    write_stream(STREAM_RESP);
+    write_stream(FEATURES);
     log_print("RECV: ");
 }
 
@@ -106,6 +100,7 @@ auth_callback(XMPPStanza *stanza)
 {
     log_print_chars("\n");
     log_println("--> Auth callback fired");
+
     XMPPStanza *query = stanza_get_child_by_ns(stanza, "jabber:iq:auth");
     XMPPStanza *username = stanza_get_child_by_name(query, "username");
     XMPPStanza *password = stanza_get_child_by_name(query, "password");
@@ -115,13 +110,14 @@ auth_callback(XMPPStanza *stanza)
     client->password = strdup(password->content->str);
     client->resource = strdup(resource->content->str);
 
-    if (g_strcmp0(client->password, prime_get_passwd()) != 0) {
-        send_to(AUTH_FAIL);
-        send_to(STREAM_END);
+    char *expected_password = prime_get_passwd();
+    if (g_strcmp0(client->password, expected_password) != 0) {
+        write_stream(AUTH_FAIL);
+        write_stream(STREAM_END);
         exit(0);
     }
 
-    send_to(AUTH_RESP);
+    write_stream(AUTH_RESP);
     log_print("RECV: ");
 }
 
@@ -132,7 +128,7 @@ id_callback(const char *id)
     if (stream) {
         log_print_chars("\n");
         log_println("--> ID callback fired for '%s'", id);
-        send_to(stream);
+        write_stream(stream);
         log_print("RECV: ");
     }
 }
@@ -157,7 +153,7 @@ _start_server_cb(void* userdata)
     parser_init(stream_start_callback, auth_callback, id_callback);
 
     log_print("RECV: ");
-    listen_to();
+    read_stream();
 
     return NULL;
 }
@@ -170,11 +166,9 @@ server_run(int port)
 
     atexit(_shutdown);
 
-    struct sockaddr_in server_addr;
-
-    // create socket
+    // create listen socket
     errno = 0;
-    listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP); // ipv4, tcp, ip
+    listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (listen_socket == -1) {
         char *errmsg = strerror(errno);
         log_println("Could not create socket: %s", errmsg);
@@ -182,6 +176,7 @@ server_run(int port)
         return -1;
     }
 
+    struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(port);
