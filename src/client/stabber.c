@@ -9,15 +9,6 @@ typedef struct server_args_t {
     int port;
 } StabberArgs;
 
-static void*
-_start_server_cb(void *data)
-{
-    StabberArgs *args = (StabberArgs*)data;
-    server_run(args->port);
-
-    return NULL;
-}
-
 int
 stbbr_main(int port)
 {
@@ -27,17 +18,7 @@ stbbr_main(int port)
 int
 stbbr_start(int port)
 {
-    StabberArgs *args = malloc(sizeof(StabberArgs));
-    args->port = port;
-
-    pthread_t server_thread;
-    int res = pthread_create(&server_thread, NULL, _start_server_cb, (void*)args);
-    if (res != 0) {
-        return 0;
-    }
-    pthread_detach(server_thread);
-
-    return 1;
+    return server_run(port);
 }
 
 int

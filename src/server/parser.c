@@ -86,7 +86,9 @@ parser_init(stream_start_func startcb, auth_func authcb, id_func idcb)
 int
 parser_feed(char *chunk, int len)
 {
-    return XML_Parse(parser, chunk, len, 0);
+    int res = XML_Parse(parser, chunk, len, 0);
+    parser_reset();
+    return res;
 }
 
 void

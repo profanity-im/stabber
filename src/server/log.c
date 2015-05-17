@@ -7,8 +7,6 @@
 #include <glib/gstdio.h>
 
 static FILE *logp;
-static GTimeZone *tz;
-static GDateTime *dt;
 
 gchar *
 _xdg_get_data_home(void)
@@ -90,7 +88,6 @@ log_init(void)
     g_string_free(log_dir, TRUE);
     g_free(xdg_data);
 
-    tz = g_time_zone_new_local();
     gchar *log_file = _get_main_log_file();
     logp = fopen(log_file, "a");
     g_chmod(log_file, S_IRUSR | S_IWUSR);
@@ -104,10 +101,12 @@ log_println(const char * const msg, ...)
     va_start(arg, msg);
     GString *fmt_msg = g_string_new(NULL);
     g_string_vprintf(fmt_msg, msg, arg);
-    dt = g_date_time_new_now(tz);
+    GTimeZone *tz = g_time_zone_new_local();
+    GDateTime *dt = g_date_time_new_now(tz);
     gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
     fprintf(logp, "%s: %s\n", date_fmt, fmt_msg->str);
     g_date_time_unref(dt);
+    g_time_zone_unref(tz);
     fflush(logp);
     g_free(date_fmt);
     g_string_free(fmt_msg, TRUE);
@@ -121,10 +120,12 @@ log_print(const char * const msg, ...)
     va_start(arg, msg);
     GString *fmt_msg = g_string_new(NULL);
     g_string_vprintf(fmt_msg, msg, arg);
-    dt = g_date_time_new_now(tz);
+    GTimeZone *tz = g_time_zone_new_local();
+    GDateTime *dt = g_date_time_new_now(tz);
     gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
     fprintf(logp, "%s: %s", date_fmt, fmt_msg->str);
     g_date_time_unref(dt);
+    g_time_zone_unref(tz);
     fflush(logp);
     g_free(date_fmt);
     g_string_free(fmt_msg, TRUE);
@@ -147,7 +148,6 @@ log_print_chars(const char * const msg, ...)
 void
 log_close(void)
 {
-    g_time_zone_unref(tz);
     if (logp) {
         fclose(logp);
     }

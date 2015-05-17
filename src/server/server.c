@@ -100,7 +100,6 @@ listen_to(void)
     while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
         log_print_chars("%c", buf[0]);
         parser_feed(buf, 1);
-        parser_reset();
         g_string_append_len(stream, buf, read_size);
         if (g_str_has_suffix(stream->str, STREAM_END)) {
             stream_end();
@@ -178,6 +177,33 @@ id_callback(const char *id)
     }
 }
 
+void*
+_start_server_cb(void* userdata)
+{
+    struct sockaddr_in client_addr;
+
+    // connection accept
+    int c = sizeof(struct sockaddr_in);
+    errno = 0;
+    int client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
+    if (client_socket == -1) {
+        char *errmsg = strerror(errno);
+        log_println("Accept failed: %s", errmsg);
+        free(errmsg);
+        exit(9);
+    }
+
+    client = xmppclient_new(client_addr, client_socket);
+    parser_init(stream_start_callback, auth_callback, id_callback);
+
+    log_print("RECV: ");
+    listen_for_xmlstart();
+    log_print("RECV: ");
+    listen_to();
+
+    return NULL;
+}
+
 int
 server_run(int port)
 {
@@ -186,7 +212,7 @@ server_run(int port)
 
     atexit(_shutdown);
 
-    struct sockaddr_in server_addr, client_addr;
+    struct sockaddr_in server_addr;
 
     // create socket
     errno = 0;
@@ -195,7 +221,7 @@ server_run(int port)
         char *errmsg = strerror(errno);
         log_println("Could not create socket: %s", errmsg);
         free(errmsg);
-        return 0;
+        return -1;
     }
 
     server_addr.sin_family = AF_INET;
@@ -209,7 +235,7 @@ server_run(int port)
         char *errmsg = strerror(errno);
         log_println("Bind failed: %s", errmsg);
         free(errmsg);
-        return 0;
+        return -1;
     }
 
     // set socket to listen mode
@@ -219,33 +245,21 @@ server_run(int port)
         char *errmsg = strerror(errno);
         log_println("Listen failed: %s", errmsg);
         free(errmsg);
-        return 0;
+        return -1;
     }
 
-    log_println("Waiting for incoming connections...");
+    log_println("Waiting for incoming connection...");
 
-    // connection accept
-    int c = sizeof(struct sockaddr_in);
-    errno = 0;
-    int client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
-    if (client_socket == -1) {
-        char *errmsg = strerror(errno);
-        log_println("Accept failed: %s", errmsg);
-        free(errmsg);
-        return 0;
+    prime_init();
+
+    pthread_t server_thread;
+    int res = pthread_create(&server_thread, NULL, _start_server_cb, NULL);
+    if (res != 0) {
+        return -1;
     }
+    pthread_detach(server_thread);
 
-    client = xmppclient_new(client_addr, client_socket);
-    parser_init(stream_start_callback, auth_callback, id_callback);
-    log_print("RECV: ");
-    int res = listen_for_xmlstart();
-    if (res == -1) {
-        return 0;
-    }
-
-    log_print("RECV: ");
-    listen_to();
-    return 1;
+    return 0;
 }
 
 static void

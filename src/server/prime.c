@@ -4,11 +4,19 @@
 #include <string.h>
 
 static char *required_passwd = NULL;
-static GHashTable *idstubs;
+static GHashTable *idstubs = NULL;
+
+void
+prime_init(void)
+{
+    required_passwd = strdup("password");
+    idstubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+}
 
 void
 prime_required_passwd(char *password)
 {
+    free(required_passwd);
     required_passwd = strdup(password);
 }
 
@@ -21,19 +29,11 @@ prime_get_passwd(void)
 void
 prime_for(char *id, char *stream)
 {
-    if (!idstubs) {
-        idstubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
-    }
-
     g_hash_table_insert(idstubs, strdup(id), strdup(stream));
 }
 
 char*
 prime_get_for(const char *id)
 {
-    if (idstubs) {
-        return g_hash_table_lookup(idstubs, id);
-    }
-
-    return NULL;
+    return g_hash_table_lookup(idstubs, id);
 }
