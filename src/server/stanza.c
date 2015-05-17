@@ -163,3 +163,33 @@ stanza_get_id(XMPPStanza *stanza)
 
     return NULL;
 }
+
+static void
+_attrs_free(XMPPAttr *attr)
+{
+    if (attr) {
+        free(attr->name);
+        free(attr->value);
+        free(attr);
+    }
+}
+
+static void
+_stanza_free(XMPPStanza *stanza)
+{
+    if (stanza) {
+        free(stanza->name);
+        if (stanza->content) {
+            g_string_free(stanza->content, TRUE);
+        }
+        g_list_free_full(stanza->attrs, (GDestroyNotify)_attrs_free);
+        g_list_free_full(stanza->children, (GDestroyNotify)_stanza_free);
+        free(stanza);
+    }
+}
+
+void
+stanza_free_all(void)
+{
+    g_list_free_full(stanzas, (GDestroyNotify)_stanza_free);
+}

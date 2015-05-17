@@ -218,7 +218,7 @@ server_run(int port)
 static void
 _shutdown(void)
 {
-    stanza_show_all();
+//    stanza_show_all();
     xmppclient_end_session(client);
     parser_close();
 
@@ -226,5 +226,6 @@ _shutdown(void)
     shutdown(listen_socket, 2);
     close(listen_socket);
 
+    stanza_free_all();
     log_close();
 }

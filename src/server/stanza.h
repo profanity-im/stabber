@@ -2,12 +2,12 @@
 #define __H_STANZA
 
 typedef struct xmpp_attr_t {
-    const char *name;
-    const char *value;
+    char *name;
+    char *value;
 } XMPPAttr;
 
 typedef struct xmpp_stanza_t {
-    const char *name;
+    char *name;
     GList *attrs;
     GList *children;
     GString *content;
@@ -23,5 +23,7 @@ const char* stanza_get_id(XMPPStanza *stanza);
 
 XMPPStanza* stanza_get_child_by_ns(XMPPStanza *stanza, char *ns);
 XMPPStanza* stanza_get_child_by_name(XMPPStanza *stanza, char *name);
+
+void stanza_free_all(void);
 
 #endif
