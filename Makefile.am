@@ -14,7 +14,10 @@ libstabber_la_SOURCES = $(sources)
 
 include_HEADERS = stabber.h
 
-noinst_PROGRAMS = runstabber
+noinst_PROGRAMS = runstabber stabbertest
 runstabber_SOURCES = runstabber.c
 runstabber_CFLAGS = -I$(top_srcdir)
 runstabber_LDADD = libstabber.la -lpthread
+stabbertest_SOURCES = stabbertest.c
+stabbertest_CFLAGS = -I$(top_srcdir)
+stabbertest_LDADD = libstabber.la -lpthread

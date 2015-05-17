@@ -27,46 +27,6 @@ static XMPPClient *client;
 static void _shutdown(void);
 static int listen_socket;
 
-int
-listen_for_xmlstart(void)
-{
-    int read_size;
-    char buf[2];
-    memset(buf, 0, sizeof(buf));
-
-    GString *stream = g_string_new("");
-    errno = 0;
-    while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
-        log_print_chars("%c", buf[0]);
-        g_string_append_len(stream, buf, read_size);
-        memset(buf, 0, sizeof(buf));
-        if (g_strcmp0(stream->str, XML_START) == 0) {
-            break;
-        }
-    }
-
-    // error
-    if (read_size == -1) {
-        char *errmsg = strerror(errno);
-        log_println("");
-        log_println("Error receiving on connection: %s", errmsg);
-        free(errmsg);
-        xmppclient_end_session(client);
-        g_string_free(stream, TRUE);
-        return -1;
-
-    // client closed
-    } else if (read_size == 0) {
-        log_println("");
-        log_println("%s:%d - Client disconnected.", client->ip, client->port);
-        xmppclient_end_session(client);
-        g_string_free(stream, TRUE);
-        return -1;
-    }
-
-    return 0;
-}
-
 void
 send_to(const char * const stanza)
 {
@@ -196,8 +156,6 @@ _start_server_cb(void* userdata)
     client = xmppclient_new(client_addr, client_socket);
     parser_init(stream_start_callback, auth_callback, id_callback);
 
-    log_print("RECV: ");
-    listen_for_xmlstart();
     log_print("RECV: ");
     listen_to();
 
