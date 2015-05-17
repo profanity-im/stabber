@@ -226,6 +226,7 @@ _shutdown(void)
     shutdown(listen_socket, 2);
     close(listen_socket);
 
+    prime_free_all();
     stanza_free_all();
     log_close();
 }

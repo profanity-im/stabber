@@ -14,6 +14,15 @@ prime_init(void)
 }
 
 void
+prime_free_all(void)
+{
+    free(required_passwd);
+    if (idstubs) {
+        g_hash_table_destroy(idstubs);
+    }
+}
+
+void
 prime_required_passwd(char *password)
 {
     free(required_passwd);

@@ -2,6 +2,7 @@
 #define __H_PRIME
 
 void prime_init(void);
+void prime_free_all(void);
 
 void prime_required_passwd(char *password);
 char* prime_get_passwd(void);
