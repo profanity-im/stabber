@@ -1,7 +1,7 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <stabber.h>
-
+#include <pthread.h>
 
 int
 main(int argc , char *argv[])
@@ -37,5 +37,7 @@ main(int argc , char *argv[])
         port = atoi(argv[1]);
     }
 
-    return stbbr_main(port);
+    stbbr_start(port);
+
+    pthread_exit(0);
 }

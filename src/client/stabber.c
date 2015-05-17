@@ -9,11 +9,6 @@ typedef struct server_args_t {
     int port;
 } StabberArgs;
 
-int
-stbbr_main(int port)
-{
-    return server_run(port);
-}
 
 int
 stbbr_start(int port)

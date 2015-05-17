@@ -17,4 +17,4 @@ include_HEADERS = stabber.h
 noinst_PROGRAMS = runstabber
 runstabber_SOURCES = runstabber.c
 runstabber_CFLAGS = -I$(top_srcdir)
-runstabber_LDADD = libstabber.la
+runstabber_LDADD = libstabber.la -lpthread
