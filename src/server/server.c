@@ -26,7 +26,8 @@
 static XMPPClient *client;
 
 static void _shutdown(void);
-static void _shutdown_sig(int sig);
+static void _signal_handler(int sig);
+
 static int listen_socket;
 
 void
@@ -35,24 +36,25 @@ write_stream(const char * const stanza)
     int sent = 0;
     int to_send = strlen(stanza);
     char *marker = (char*)stanza;
+
     while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
         to_send -= sent;
         marker += sent;
     }
+
     log_println("SENT: %s", stanza);
 }
 
 int
 read_stream(void)
 {
-    int read_size;
     char buf[2];
     memset(buf, 0, sizeof(buf));
     GString *stream = g_string_new("");
 
     errno = 0;
     while (TRUE) {
-        read_size = recv(client->sock, buf, 1, 0);
+        int read_size = recv(client->sock, buf, 1, 0);
 
         // client disconnect
         if (read_size == 0) {
@@ -79,7 +81,7 @@ read_stream(void)
             }
         }
 
-        // read a byte, feed parser
+        // success, feed parser with byte
         log_print_chars("%c", buf[0]);
         parser_feed(buf, 1);
         g_string_append_len(stream, buf, read_size);
@@ -100,9 +102,11 @@ stream_start_callback(void)
 {
     log_print_chars("\n");
     log_println("--> Stream start callback fired");
+
     write_stream(XML_START);
     write_stream(STREAM_RESP);
     write_stream(FEATURES);
+
     log_print("RECV: ");
 }
 
@@ -149,14 +153,14 @@ _start_server_cb(void* userdata)
 {
     struct sockaddr_in client_addr;
 
-    // set socket to nonblocking mode
+    // listen socket non blocking
     int res = fcntl(listen_socket, F_SETFL, fcntl(listen_socket, F_GETFL, 0) | O_NONBLOCK);
     if (res == -1) {
         log_println("Error setting nonblocking on listen socket: %s", strerror(errno));
         exit(0);
     }
 
-    // set socket recv timeout
+    // listen socket read timeout
     struct timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 1000 * 10;
@@ -167,7 +171,7 @@ _start_server_cb(void* userdata)
         exit(0);
     }
 
-    // connection accept
+    // wait for connection
     int c = sizeof(struct sockaddr_in);
     int client_socket;
     errno = 0;
@@ -179,14 +183,14 @@ _start_server_cb(void* userdata)
         errno = 0;
     }
 
-    // set socket to nonblocking mode
+    // client socket non blocking
     res = fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0) | O_NONBLOCK);
     if (res == -1) {
         log_println("Error setting nonblocking on client socket: %s", strerror(errno));
         exit(0);
     }
 
-    // set socket recv timeout
+    // client socket read timeout
     errno = 0;
     res = setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
     if (res < 0) {
@@ -210,8 +214,9 @@ server_run(int port)
     log_init();
     log_println("Starting on port: %d...", port);
 
-    signal(SIGSTOP, _shutdown_sig);
-    signal(SIGINT, _shutdown_sig);
+    // signal handlers
+    signal(SIGSTOP, _signal_handler);
+    signal(SIGINT, _signal_handler);
     atexit(_shutdown);
 
     // create listen socket
@@ -247,6 +252,7 @@ server_run(int port)
 
     prime_init();
 
+    // start client processor thread
     pthread_t server_thread;
     int res = pthread_create(&server_thread, NULL, _start_server_cb, NULL);
     if (res != 0) {
@@ -260,11 +266,11 @@ server_run(int port)
 static void
 _shutdown(void)
 {
-    _shutdown_sig(-1);
+    _signal_handler(-1);
 }
 
 static void
-_shutdown_sig(int sig)
+_signal_handler(int sig)
 {
     log_println("SHUTDOWN");
 //    stanza_show_all();
