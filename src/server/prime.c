@@ -38,7 +38,9 @@ prime_get_passwd(void)
 void
 prime_for(char *id, char *stream)
 {
-    g_hash_table_insert(idstubs, strdup(id), strdup(stream));
+    if (idstubs) {
+        g_hash_table_insert(idstubs, strdup(id), strdup(stream));
+    }
 }
 
 char*

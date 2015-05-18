@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "server/xmppclient.h"
 #include "server/parser.h"
@@ -25,6 +26,7 @@
 static XMPPClient *client;
 
 static void _shutdown(void);
+static void _shutdown_sig(int sig);
 static int listen_socket;
 
 void
@@ -46,10 +48,38 @@ read_stream(void)
     int read_size;
     char buf[2];
     memset(buf, 0, sizeof(buf));
-
     GString *stream = g_string_new("");
+
     errno = 0;
-    while ((read_size = recv(client->sock, buf, 1, 0)) > 0) {
+    while (TRUE) {
+        read_size = recv(client->sock, buf, 1, 0);
+
+        // client disconnect
+        if (read_size == 0) {
+            log_println("");
+            log_println("%s:%d - Client disconnected.", client->ip, client->port);
+            g_string_free(stream, TRUE);
+            exit(0);
+        }
+
+        // error
+        if (read_size == -1) {
+            // read timeout, try again
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                errno = 0;
+                continue;
+
+            // real error
+            } else {
+                log_println("");
+                log_println("Error receiving on connection: %s", strerror(errno));
+                xmppclient_end_session(client);
+                g_string_free(stream, TRUE);
+                exit(0);
+            }
+        }
+
+        // read a byte, feed parser
         log_print_chars("%c", buf[0]);
         parser_feed(buf, 1);
         g_string_append_len(stream, buf, read_size);
@@ -60,25 +90,6 @@ read_stream(void)
             break;
         }
         memset(buf, 0, sizeof(buf));
-    }
-
-    // error
-    if (read_size == -1) {
-        char *errmsg = strerror(errno);
-        log_println("");
-        log_println("Error receiving on connection: %s", errmsg);
-        free(errmsg);
-        xmppclient_end_session(client);
-        g_string_free(stream, TRUE);
-        return -1;
-
-    // client closed
-    } else if (read_size == 0) {
-        log_println("");
-        log_println("%s:%d - Client disconnected.", client->ip, client->port);
-        xmppclient_end_session(client);
-        g_string_free(stream, TRUE);
-        return -1;
     }
 
     return 0;
@@ -138,15 +149,49 @@ _start_server_cb(void* userdata)
 {
     struct sockaddr_in client_addr;
 
+    // set socket to nonblocking mode
+    int res = fcntl(listen_socket, F_SETFL, fcntl(listen_socket, F_GETFL, 0) | O_NONBLOCK);
+    if (res == -1) {
+        log_println("Error setting nonblocking on listen socket: %s", strerror(errno));
+        exit(0);
+    }
+
+    // set socket recv timeout
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 1000 * 10;
+    errno = 0;
+    res = setsockopt(listen_socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+    if (res < 0) {
+        log_println("Error setting listen socket options: %s", strerror(errno));
+        exit(0);
+    }
+
     // connection accept
     int c = sizeof(struct sockaddr_in);
+    int client_socket;
     errno = 0;
-    int client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c);
-    if (client_socket == -1) {
-        char *errmsg = strerror(errno);
-        log_println("Accept failed: %s", errmsg);
-        free(errmsg);
-        exit(9);
+    while ((client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c)) == -1) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            log_println("Accept failed: %s", strerror(errno));
+            exit(0);
+        }
+        errno = 0;
+    }
+
+    // set socket to nonblocking mode
+    res = fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0) | O_NONBLOCK);
+    if (res == -1) {
+        log_println("Error setting nonblocking on client socket: %s", strerror(errno));
+        exit(0);
+    }
+
+    // set socket recv timeout
+    errno = 0;
+    res = setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+    if (res < 0) {
+        log_println("Error setting client socket options: %s", strerror(errno));
+        exit(0);
     }
 
     client = xmppclient_new(client_addr, client_socket);
@@ -161,18 +206,19 @@ _start_server_cb(void* userdata)
 int
 server_run(int port)
 {
+    client = NULL;
     log_init();
     log_println("Starting on port: %d...", port);
 
+    signal(SIGSTOP, _shutdown_sig);
+    signal(SIGINT, _shutdown_sig);
     atexit(_shutdown);
 
     // create listen socket
     errno = 0;
     listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (listen_socket == -1) {
-        char *errmsg = strerror(errno);
-        log_println("Could not create socket: %s", errmsg);
-        free(errmsg);
+        log_println("Could not create socket: %s", strerror(errno));
         return -1;
     }
 
@@ -185,9 +231,7 @@ server_run(int port)
     errno = 0;
     int ret = bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (ret == -1) {
-        char *errmsg = strerror(errno);
-        log_println("Bind failed: %s", errmsg);
-        free(errmsg);
+        log_println("Bind failed: %s", strerror(errno));
         return -1;
     }
 
@@ -195,9 +239,7 @@ server_run(int port)
     errno = 0;
     ret = listen(listen_socket, 5);
     if (ret == -1) {
-        char *errmsg = strerror(errno);
-        log_println("Listen failed: %s", errmsg);
-        free(errmsg);
+        log_println("Listen failed: %s", strerror(errno));
         return -1;
     }
 
@@ -218,6 +260,13 @@ server_run(int port)
 static void
 _shutdown(void)
 {
+    _shutdown_sig(-1);
+}
+
+static void
+_shutdown_sig(int sig)
+{
+    log_println("SHUTDOWN");
 //    stanza_show_all();
     xmppclient_end_session(client);
     parser_close();
