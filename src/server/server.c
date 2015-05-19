@@ -33,11 +33,27 @@ static int listen_socket;
 void
 write_stream(const char * const stanza)
 {
-    int sent = 0;
     int to_send = strlen(stanza);
     char *marker = (char*)stanza;
 
-    while (to_send > 0 && ((sent = write(client->sock, marker, to_send)) > 0)) {
+    while (to_send > 0) {
+        int sent = write(client->sock, marker, to_send);
+
+        // error
+        if (sent == -1) {
+            // write timeout, try again
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                errno = 0;
+                continue;
+
+            // real error
+            } else {
+                log_println("");
+                log_println("Error sending on connection: %s", strerror(errno));
+                exit(0);
+            }
+        }
+
         to_send -= sent;
         marker += sent;
     }
@@ -75,7 +91,6 @@ read_stream(void)
             } else {
                 log_println("");
                 log_println("Error receiving on connection: %s", strerror(errno));
-                xmppclient_end_session(client);
                 g_string_free(stream, TRUE);
                 exit(0);
             }
