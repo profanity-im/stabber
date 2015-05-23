@@ -17,9 +17,12 @@ void
 prime_free_all(void)
 {
     free(required_passwd);
+    required_passwd = NULL;
+
     if (idstubs) {
         g_hash_table_destroy(idstubs);
     }
+    idstubs = NULL;
 }
 
 void

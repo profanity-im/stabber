@@ -28,3 +28,9 @@ stbbr_for(char *id, char *stream)
     prime_for(id, stream);
     return 1;
 }
+
+void
+stbbr_stop(void)
+{
+    server_stop();
+}

@@ -95,6 +95,7 @@ void
 parser_close(void)
 {
     XML_ParserFree(parser);
+    parser = NULL;
 }
 
 void

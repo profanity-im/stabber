@@ -28,8 +28,8 @@ xmppclient_end_session(XMPPClient *client)
 {
     if (client) {
         if (client->sock) {
-            while (recv(client->sock, NULL, 1, 0) > 0) {}
             shutdown(client->sock, 2);
+            while (recv(client->sock, NULL, 1, 0) > 0) {}
             close(client->sock);
         }
         free(client->ip);

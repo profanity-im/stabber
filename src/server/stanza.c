@@ -192,4 +192,5 @@ void
 stanza_free_all(void)
 {
     g_list_free_full(stanzas, (GDestroyNotify)_stanza_free);
+    stanzas = NULL;
 }
