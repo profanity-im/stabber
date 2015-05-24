@@ -6,7 +6,7 @@ Stabber acts as a stubbed XMPP service for testing purposes, with an API to allo
 * Responding to XMPP stanzas with stubbed responses.
 * Verifying that XMPP stanzas were received.
 
-The project is work in progress with only the basics implemented, and is being developed alongside boothj5/profanity
+The project is work in progress with only the basics implemented, and is being developed alongside https://github.com/boothj5/profanity
 Currently the only API is written in C.
 # Installing
 ```
