@@ -23,6 +23,7 @@
 
 #define STREAM_END "</stream:stream>"
 
+pthread_mutex_t send_queue_lock;
 static GList *send_queue;
 
 static XMPPClient *client;
@@ -72,6 +73,7 @@ read_stream(void)
     errno = 0;
     while (TRUE) {
         // send anything from queue
+        pthread_mutex_lock(&send_queue_lock);
         GList *curr_send = send_queue;
         while (curr_send) {
             write_stream(curr_send->data);
@@ -80,6 +82,7 @@ read_stream(void)
 
         g_list_free_full(send_queue, free);
         send_queue = NULL;
+        pthread_mutex_unlock(&send_queue_lock);
 
         int read_size = recv(client->sock, buf, 1, 0);
 
@@ -228,7 +231,10 @@ _start_server_cb(void* userdata)
 int
 server_run(int port)
 {
+    pthread_mutex_lock(&send_queue_lock);
     send_queue = NULL;
+    pthread_mutex_unlock(&send_queue_lock);
+
     client = NULL;
     log_init();
     log_println("Starting on port: %d...", port);
@@ -290,7 +296,9 @@ server_run(int port)
 void
 server_send(char *stream)
 {
+    pthread_mutex_lock(&send_queue_lock);
     send_queue = g_list_append(send_queue, strdup(stream));
+    pthread_mutex_unlock(&send_queue_lock);
 }
 
 void
@@ -314,7 +322,10 @@ _shutdown(void)
 
     prime_free_all();
     stanza_free_all();
+
+    pthread_mutex_lock(&send_queue_lock);
     g_list_free_full(send_queue, free);
     send_queue = NULL;
+    pthread_mutex_unlock(&send_queue_lock);
     log_close();
 }
