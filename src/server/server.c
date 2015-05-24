@@ -293,7 +293,6 @@ server_stop(void)
 static void
 _shutdown(void)
 {
-    log_println("SHUTDOWN");
 //    stanza_show_all();
     xmppclient_end_session(client);
     client = NULL;
