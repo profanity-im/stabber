@@ -7,6 +7,7 @@ sources = \
     src/server/stanza.c src/server/stanza.h \
     src/server/log.c src/server/log.h \
     src/server/prime.c src/server/prime.h \
+    src/server/verify.c src/server/verify.h \
     src/client/stabber.c src/client/stabber.h
 
 libstabber_la_LDFLAGS = -export-symbols-regex '^stbbr_'

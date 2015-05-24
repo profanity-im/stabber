@@ -4,6 +4,7 @@
 
 #include "server/server.h"
 #include "server/prime.h"
+#include "server/verify.h"
 
 typedef struct server_args_t {
     int port;
@@ -27,6 +28,12 @@ stbbr_for(char *id, char *stream)
 {
     prime_for(id, stream);
     return 1;
+}
+
+int
+stbbr_verify_last(char *stanza)
+{
+    return verify_last(stanza);
 }
 
 void

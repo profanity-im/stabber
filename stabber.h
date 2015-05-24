@@ -7,4 +7,6 @@ void stbbr_stop(void);
 int stbbr_auth_passwd(char *password);
 void stbbr_for(char *id, char *stream);
 
+int stbbr_verify_last(char *stanza);
+
 #endif

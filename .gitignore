@@ -41,5 +41,6 @@ src/server/log.lo
 config.cache
 configure.lineno
 src/server/prime.lo
+src/server/verify.lo
 
 stabbertest

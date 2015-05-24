@@ -1,6 +1,8 @@
 #ifndef __H_STANZA
 #define __H_STANZA
 
+#include <glib.h>
+
 typedef struct xmpp_attr_t {
     char *name;
     char *value;
@@ -24,6 +26,9 @@ const char* stanza_get_id(XMPPStanza *stanza);
 XMPPStanza* stanza_get_child_by_ns(XMPPStanza *stanza, char *ns);
 XMPPStanza* stanza_get_child_by_name(XMPPStanza *stanza, char *name);
 
+int stanza_verify_last(XMPPStanza *stanza);
+
+void stanza_free(XMPPStanza *stanza);
 void stanza_free_all(void);
 
 #endif
