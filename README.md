@@ -60,7 +60,7 @@ stbbr_for("msg_21",
 );
 ```
 ### Verify sent stanzas
-To verify that you send a particular stanza to Stabber:
+To verify that you sent a particular stanza to Stabber:
 ```c
 stbbr_verify(
     "<message id=\"msg24415\" to=\"buddy1@localhost/mobile\" type=\"chat\">"
