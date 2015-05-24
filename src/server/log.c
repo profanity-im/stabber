@@ -114,38 +114,6 @@ log_println(const char * const msg, ...)
 }
 
 void
-log_print(const char * const msg, ...)
-{
-    va_list arg;
-    va_start(arg, msg);
-    GString *fmt_msg = g_string_new(NULL);
-    g_string_vprintf(fmt_msg, msg, arg);
-    GTimeZone *tz = g_time_zone_new_local();
-    GDateTime *dt = g_date_time_new_now(tz);
-    gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
-    fprintf(logp, "%s: %s", date_fmt, fmt_msg->str);
-    g_date_time_unref(dt);
-    g_time_zone_unref(tz);
-    fflush(logp);
-    g_free(date_fmt);
-    g_string_free(fmt_msg, TRUE);
-    va_end(arg);
-}
-
-void
-log_print_chars(const char * const msg, ...)
-{
-    va_list arg;
-    va_start(arg, msg);
-    GString *fmt_msg = g_string_new(NULL);
-    g_string_vprintf(fmt_msg, msg, arg);
-    fprintf(logp, "%s", fmt_msg->str);
-    fflush(logp);
-    g_string_free(fmt_msg, TRUE);
-    va_end(arg);
-}
-
-void
 log_close(void)
 {
     if (logp) {

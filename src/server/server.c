@@ -31,10 +31,10 @@ static int listen_socket;
 static pthread_t server_thread;
 
 void
-write_stream(const char * const stanza)
+write_stream(const char * const stream)
 {
-    int to_send = strlen(stanza);
-    char *marker = (char*)stanza;
+    int to_send = strlen(stream);
+    char *marker = (char*)stream;
 
     while (to_send > 0) {
         int sent = write(client->sock, marker, to_send);
@@ -48,7 +48,6 @@ write_stream(const char * const stanza)
 
             // real error
             } else {
-                log_println("");
                 log_println("Error sending on connection: %s", strerror(errno));
                 return;
             }
@@ -58,7 +57,7 @@ write_stream(const char * const stanza)
         marker += sent;
     }
 
-    log_println("SENT: %s", stanza);
+    log_println("SENT: %s", stream);
 }
 
 int
@@ -74,7 +73,6 @@ read_stream(void)
 
         // client disconnect
         if (read_size == 0) {
-            log_println("");
             log_println("%s:%d - Client disconnected.", client->ip, client->port);
             g_string_free(stream, TRUE);
             return -1;
@@ -89,7 +87,6 @@ read_stream(void)
 
             // real error
             } else {
-                log_println("");
                 log_println("Error receiving on connection: %s", strerror(errno));
                 g_string_free(stream, TRUE);
                 return -1;
@@ -97,11 +94,10 @@ read_stream(void)
         }
 
         // success, feed parser with byte
-        log_print_chars("%c", buf[0]);
         parser_feed(buf, 1);
         g_string_append_len(stream, buf, read_size);
         if (g_str_has_suffix(stream->str, STREAM_END)) {
-            log_print_chars("\n");
+            log_println("RECV: </stream:stream>");
             log_println("--> Stream end callback fired");
             write_stream(STREAM_END);
             _shutdown();
@@ -116,20 +112,16 @@ read_stream(void)
 void
 stream_start_callback(void)
 {
-    log_print_chars("\n");
     log_println("--> Stream start callback fired");
 
     write_stream(XML_START);
     write_stream(STREAM_RESP);
     write_stream(FEATURES);
-
-    log_print("RECV: ");
 }
 
 void
 auth_callback(XMPPStanza *stanza)
 {
-    log_print_chars("\n");
     log_println("--> Auth callback fired");
 
     XMPPStanza *query = stanza_get_child_by_ns(stanza, "jabber:iq:auth");
@@ -149,7 +141,6 @@ auth_callback(XMPPStanza *stanza)
     }
 
     write_stream(AUTH_RESP);
-    log_print("RECV: ");
 }
 
 void
@@ -157,10 +148,8 @@ id_callback(const char *id)
 {
     char *stream = prime_get_for(id);
     if (stream) {
-        log_print_chars("\n");
         log_println("--> ID callback fired for '%s'", id);
         write_stream(stream);
-        log_print("RECV: ");
     }
 }
 
@@ -217,7 +206,6 @@ _start_server_cb(void* userdata)
     client = xmppclient_new(client_addr, client_socket);
     parser_init(stream_start_callback, auth_callback, id_callback);
 
-    log_print("RECV: ");
     read_stream();
 
     return NULL;

@@ -5,12 +5,14 @@
 
 #include "server/parser.h"
 #include "server/stanza.h"
+#include "server/log.h"
 
 static int depth = 0;
 static int do_reset = 0;
 
 static XML_Parser parser;
 static XMPPStanza *curr_stanza;
+static GString *curr_string = NULL;
 
 static stream_start_func stream_start_cb = NULL;
 static auth_func auth_cb = NULL;
@@ -20,6 +22,7 @@ static void
 start_element(void *data, const char *element, const char **attributes)
 {
     if (g_strcmp0(element, "stream:stream") == 0) {
+        log_println("RECV: %s", curr_string->str);
         stream_start_cb();
         do_reset = 1;
         return;
@@ -47,6 +50,7 @@ end_element(void *data, const char *element)
         stanza_add_child(curr_stanza->parent, curr_stanza);
         curr_stanza = curr_stanza->parent;
     } else {
+        log_println("RECV: %s", curr_string->str);
         stanza_add(curr_stanza);
         if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
             auth_cb(curr_stanza);
@@ -74,6 +78,11 @@ handle_data(void *data, const char *content, int length)
 void
 parser_init(stream_start_func startcb, auth_func authcb, id_func idcb)
 {
+    if (curr_string) {
+        g_string_free(curr_string, TRUE);
+    }
+    curr_string = g_string_new("");
+
     stream_start_cb = startcb;
     auth_cb = authcb;
     id_cb = idcb;
@@ -86,6 +95,7 @@ parser_init(stream_start_func startcb, auth_func authcb, id_func idcb)
 int
 parser_feed(char *chunk, int len)
 {
+    g_string_append_len(curr_string, chunk, len);
     int res = XML_Parse(parser, chunk, len, 0);
     parser_reset();
     return res;
