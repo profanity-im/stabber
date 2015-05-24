@@ -171,6 +171,13 @@ _xmpp_attr_equal(XMPPAttr *attr1, XMPPAttr *attr2)
         return -1;
     }
 
+    if (g_strcmp0(attr1->value, "*") == 0) {
+        return 0;
+    }
+    if (g_strcmp0(attr2->value, "*") == 0) {
+        return 0;
+    }
+
     if (g_strcmp0(attr1->value, attr2->value) != 0) {
         return -1;
     }
@@ -253,7 +260,7 @@ stanza_verify_any(XMPPStanza *stanza)
     GList *curr = g_list_last(stanzas);
     while (curr) {
         XMPPStanza *curr_stanza = curr->data;
-        if (_stanzas_equal(curr_stanza, stanza) == 0) {
+        if (_stanzas_equal(stanza, curr_stanza) == 0) {
             return 1;
         }
 
