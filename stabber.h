@@ -10,4 +10,6 @@ void stbbr_for(char *id, char *stream);
 int stbbr_verify(char *stanza);
 int stbbr_verify_last(char *stanza);
 
+void stbbr_send(char *stream);
+
 #endif

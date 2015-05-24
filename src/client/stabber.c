@@ -43,6 +43,12 @@ stbbr_verify(char *stanza)
 }
 
 void
+stbbr_send(char *stream)
+{
+    server_send(stream);
+}
+
+void
 stbbr_stop(void)
 {
     server_stop();

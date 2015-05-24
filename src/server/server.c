@@ -23,6 +23,8 @@
 
 #define STREAM_END "</stream:stream>"
 
+static GList *send_queue;
+
 static XMPPClient *client;
 
 static void _shutdown(void);
@@ -69,6 +71,16 @@ read_stream(void)
 
     errno = 0;
     while (TRUE) {
+        // send anything from queue
+        GList *curr_send = send_queue;
+        while (curr_send) {
+            write_stream(curr_send->data);
+            curr_send = g_list_next(curr_send);
+        }
+
+        g_list_free_full(send_queue, free);
+        send_queue = NULL;
+
         int read_size = recv(client->sock, buf, 1, 0);
 
         // client disconnect
@@ -216,6 +228,7 @@ _start_server_cb(void* userdata)
 int
 server_run(int port)
 {
+    send_queue = NULL;
     client = NULL;
     log_init();
     log_println("Starting on port: %d...", port);
@@ -275,6 +288,12 @@ server_run(int port)
 }
 
 void
+server_send(char *stream)
+{
+    send_queue = g_list_append(send_queue, strdup(stream));
+}
+
+void
 server_stop(void)
 {
     pthread_join(server_thread, NULL);
@@ -295,5 +314,7 @@ _shutdown(void)
 
     prime_free_all();
     stanza_free_all();
+    g_list_free_full(send_queue, free);
+    send_queue = NULL;
     log_close();
 }
