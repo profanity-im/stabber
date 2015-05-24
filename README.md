@@ -90,3 +90,5 @@ Stabber logs to:
 ```
 ~/.local/share/stabber/logs/stabber.log
 ```
+# Example
+Example tests for Profanity can be found at: https://github.com/boothj5/profanity/blob/stabber-tests/stabbertests/test_connect.c
