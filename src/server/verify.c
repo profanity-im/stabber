@@ -46,6 +46,30 @@ handle_data(void *data, const char *content, int length)
 }
 
 int
+verify_any(char *stanza_text)
+{
+    depth = 0;
+    if (curr_stanza) {
+        stanza_free(curr_stanza);
+    }
+    XML_Parser parser = XML_ParserCreate(NULL);
+    XML_SetElementHandler(parser, start_element, end_element);
+    XML_SetCharacterDataHandler(parser, handle_data);
+
+    XML_Parse(parser, stanza_text, strlen(stanza_text), 0);
+    XML_ParserFree(parser);
+
+    int result = stanza_verify_any(curr_stanza);
+    if (result) {
+        log_println("VERIFY SUCCESS: %s", stanza_text);
+    } else {
+        log_println("VERIFY FAIL: %s", stanza_text);
+    }
+
+    return result;
+}
+
+int
 verify_last(char *stanza_text)
 {
     depth = 0;
@@ -61,9 +85,9 @@ verify_last(char *stanza_text)
 
     int result = stanza_verify_last(curr_stanza);
     if (result) {
-        log_println("VERIFY SUCCESS: %s", stanza_text);
+        log_println("VERIFY LAST SUCCESS: %s", stanza_text);
     } else {
-        log_println("VERIFY FAIL: %s", stanza_text);
+        log_println("VERIFY LAST FAIL: %s", stanza_text);
     }
 
     return result;

@@ -36,6 +36,12 @@ stbbr_verify_last(char *stanza)
     return verify_last(stanza);
 }
 
+int
+stbbr_verify(char *stanza)
+{
+    return verify_any(stanza);
+}
+
 void
 stbbr_stop(void)
 {

@@ -244,6 +244,26 @@ _stanzas_equal(XMPPStanza *first, XMPPStanza *second)
 }
 
 int
+stanza_verify_any(XMPPStanza *stanza)
+{
+    if (!stanzas) {
+        return 0;
+    }
+
+    GList *curr = g_list_last(stanzas);
+    while (curr) {
+        XMPPStanza *curr_stanza = curr->data;
+        if (_stanzas_equal(curr_stanza, stanza) == 0) {
+            return 1;
+        }
+
+        curr = g_list_previous(curr);
+    }
+
+    return 0;
+}
+
+int
 stanza_verify_last(XMPPStanza *stanza)
 {
     if (!stanzas) {
