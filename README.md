@@ -51,7 +51,7 @@ stbbr_send(
 );
 ```
 ### Responding to stanzas
-As well as being able to send an XMPP stanza at any time, you can also response to a stanza by its id attribute:
+As well as being able to send an XMPP stanza at any time, you can also respond to a stanza by its id attribute:
 ```c
 stbbr_for("msg_21",
     "<message id=\"message17\" to=\"stabber@localhost\" from=\"buddy1@localhost/mobile\" type=\"chat\">"
