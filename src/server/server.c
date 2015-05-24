@@ -100,6 +100,8 @@ read_stream(void)
             log_println("RECV: </stream:stream>");
             log_println("--> Stream end callback fired");
             write_stream(STREAM_END);
+            log_println("");
+            log_println("");
             _shutdown();
             return 0;
         }
