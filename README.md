@@ -68,7 +68,7 @@ stbbr_verify(
     "</message>"
 );
 ```
-The above function returns 1 id the stanza has been received, and 0 if it hasn't.
+The above function returns 1 if the stanza has been received, and 0 if it hasn't.
 The following function check that it was specifically the last stanza received:
 ```c
 stbbr_verify_last(
