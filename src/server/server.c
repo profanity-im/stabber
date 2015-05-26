@@ -32,6 +32,7 @@ static void _shutdown(void);
 
 static int listen_socket;
 static pthread_t server_thread;
+static gboolean kill_recv = FALSE;
 
 void
 write_stream(const char * const stream)
@@ -72,6 +73,11 @@ read_stream(void)
 
     errno = 0;
     while (TRUE) {
+        if (kill_recv) {
+            _shutdown();
+            return 0;
+        }
+
         // send anything from queue
         pthread_mutex_lock(&send_queue_lock);
         GList *curr_send = send_queue;
@@ -235,6 +241,8 @@ server_run(int port)
     send_queue = NULL;
     pthread_mutex_unlock(&send_queue_lock);
 
+    kill_recv = FALSE;
+
     client = NULL;
     log_init();
     log_println("Starting on port: %d...", port);
@@ -304,6 +312,7 @@ server_send(char *stream)
 void
 server_stop(void)
 {
+    kill_recv = TRUE;
     pthread_join(server_thread, NULL);
 }
 
@@ -327,5 +336,6 @@ _shutdown(void)
     g_list_free_full(send_queue, free);
     send_queue = NULL;
     pthread_mutex_unlock(&send_queue_lock);
+
     log_close();
 }
