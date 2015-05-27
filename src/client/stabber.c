@@ -37,13 +37,13 @@ stbbr_for(char *id, char *stream)
 }
 
 int
-stbbr_verify_last(char *stanza)
+stbbr_last_received(char *stanza)
 {
     return verify_last(stanza);
 }
 
 int
-stbbr_verify(char *stanza)
+stbbr_received(char *stanza)
 {
     return verify_any(stanza);
 }
