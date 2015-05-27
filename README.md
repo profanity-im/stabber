@@ -85,6 +85,11 @@ stbbr_verify(
     "</message>"
 );
 ````
+By default the verification calls block for up to 10 seconds, the timeout in seconds can be set with:
+```c
+stbbr_set_timeout(3);
+```
+A value of 0 or less is non-blocking and will return immediately.
 # Logs
 Stabber logs to:
 ```
