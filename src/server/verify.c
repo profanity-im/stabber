@@ -1,4 +1,5 @@
 #include <string.h>
+#include <unistd.h>
 
 #include <expat.h>
 
@@ -7,6 +8,17 @@
 
 static int depth = 0;
 static XMPPStanza *curr_stanza = NULL;
+static int timeoutsecs = 0;
+
+void
+verify_set_timeout(int seconds)
+{
+    if (seconds <= 0) {
+        timeoutsecs = 0;
+    } else {
+        timeoutsecs = seconds;
+    }
+}
 
 static void
 start_element(void *data, const char *element, const char **attributes)
@@ -59,7 +71,23 @@ verify_any(char *stanza_text)
     XML_Parse(parser, stanza_text, strlen(stanza_text), 0);
     XML_ParserFree(parser);
 
-    int result = stanza_verify_any(curr_stanza);
+    int result = 0;
+    if (timeoutsecs <= 0) {
+        result = stanza_verify_any(curr_stanza);
+    } else {
+        double elapsed = 0.0;
+        GTimer *timer = g_timer_new();
+        while (elapsed < timeoutsecs * 1.0) {
+            result = stanza_verify_any(curr_stanza);
+            if (result) {
+                break;
+            }
+
+            usleep(1000 * 50);
+            elapsed = g_timer_elapsed(timer, NULL);
+        }
+    }
+
     if (result) {
         log_println("VERIFY SUCCESS: %s", stanza_text);
     } else {
@@ -83,7 +111,23 @@ verify_last(char *stanza_text)
     XML_Parse(parser, stanza_text, strlen(stanza_text), 0);
     XML_ParserFree(parser);
 
-    int result = stanza_verify_last(curr_stanza);
+    int result = 0;
+    if (timeoutsecs <= 0) {
+        result = stanza_verify_last(curr_stanza);
+    } else {
+        double elapsed = 0.0;
+        GTimer *timer = g_timer_new();
+        while (elapsed < timeoutsecs * 1.0) {
+            result = stanza_verify_last(curr_stanza);
+            if (result) {
+                break;
+            }
+
+            usleep(1000 * 50);
+            elapsed = g_timer_elapsed(timer, NULL);
+        }
+    }
+
     if (result) {
         log_println("VERIFY LAST SUCCESS: %s", stanza_text);
     } else {

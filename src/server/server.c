@@ -10,6 +10,7 @@
 #include "server/parser.h"
 #include "server/prime.h"
 #include "server/stanza.h"
+#include "server/verify.h"
 #include "server/server.h"
 #include "server/log.h"
 
@@ -242,8 +243,9 @@ server_run(int port)
     pthread_mutex_unlock(&send_queue_lock);
 
     kill_recv = FALSE;
-
     client = NULL;
+    verify_set_timeout(10);
+
     log_init();
     log_println("Starting on port: %d...", port);
 

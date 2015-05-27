@@ -4,6 +4,8 @@
 int stbbr_start(int port);
 void stbbr_stop(void);
 
+void stbbr_set_timeout(int seconds);
+
 int stbbr_auth_passwd(char *password);
 void stbbr_for(char *id, char *stream);
 

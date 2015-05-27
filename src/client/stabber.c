@@ -16,6 +16,12 @@ stbbr_start(int port)
     return server_run(port);
 }
 
+void
+stbbr_set_timeout(int seconds)
+{
+    verify_set_timeout(seconds);
+}
+
 int
 stbbr_auth_passwd(char *password)
 {
