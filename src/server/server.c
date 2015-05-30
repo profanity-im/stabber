@@ -177,6 +177,20 @@ id_callback(const char *id)
     }
 }
 
+void
+server_wait_for(char *id)
+{
+    log_println("WAIT for stanza with id: %s", id);
+    while (TRUE) {
+        int res = stanzas_contains_id(id);
+        if (res) {
+            log_println("WAIT complete for id: %s", id);
+            return;
+        }
+        usleep(1000 * 50);
+    }
+}
+
 void*
 _start_server_cb(void* userdata)
 {
@@ -321,6 +335,7 @@ server_stop(void)
 static void
 _shutdown(void)
 {
+    log_println("SHUTDOWN");
 //    stanza_show_all();
     xmppclient_end_session(client);
     client = NULL;

@@ -36,6 +36,12 @@ stbbr_for(char *id, char *stream)
     return 1;
 }
 
+void
+stbbr_wait_for(char *id)
+{
+    server_wait_for(id);
+}
+
 int
 stbbr_last_received(char *stanza)
 {

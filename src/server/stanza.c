@@ -74,6 +74,29 @@ stanza_show_all(void)
     pthread_mutex_unlock(&stanzas_lock);
 }
 
+int
+stanzas_contains_id(char *id)
+{
+    pthread_mutex_lock(&stanzas_lock);
+    GList *curr = stanzas;
+    while (curr) {
+        XMPPStanza *stanza = curr->data;
+        GList *curr_attr = stanza->attrs;
+        while (curr_attr) {
+            XMPPAttr *attr = curr_attr->data;
+            if (g_strcmp0(attr->name, "id") == 0 && g_strcmp0(attr->value, id) == 0) {
+                pthread_mutex_unlock(&stanzas_lock);
+                return 1;
+            }
+            curr_attr = g_list_next(curr_attr);
+        }
+        curr = g_list_next(curr);
+    }
+    pthread_mutex_unlock(&stanzas_lock);
+
+    return 0;
+}
+
 void
 stanza_add(XMPPStanza *stanza)
 {

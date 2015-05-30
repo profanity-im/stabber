@@ -9,6 +9,8 @@ void stbbr_set_timeout(int seconds);
 int stbbr_auth_passwd(char *password);
 void stbbr_for(char *id, char *stream);
 
+void stbbr_wait_for(char *id);
+
 int stbbr_received(char *stanza);
 int stbbr_last_received(char *stanza);
 
