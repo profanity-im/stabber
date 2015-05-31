@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <stdint.h>
+#include <sys/socket.h>
 #include <microhttpd.h>
 #include <glib.h>
 
