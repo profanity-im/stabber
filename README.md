@@ -115,10 +115,10 @@ stabber -p 5230 -h 5231
 ```
 The second argument is the HTTP port on which Stabber will listen.
 
-To send a message to a client currently connected to stabber on port 5230, send a POST request to `http://localhost:5231/send` with the body containing the stanza to send, e.g.:
+To send a message to a client currently connected to Stabber on port 5230, send a POST request to `http://localhost:5231/send` with the body containing the stanza to send, e.g.:
 ```
 curl --data '<message id="prof_msg_12" to="stabber@localhost/profanity" from="buddy1@localhost/laptop" type="chat"><body>Here's a message sent from stabber, using the HTTP api</body></message>' http://localhost:5231/send
 ```
 
 # Examples
-Example tests for Profanity can be found at: https://github.com/boothj5/profanity/blob/stabber-tests/stabbertests (the starting and stopping between tests is handled by the setup and teardown routines https://github.com/boothj5/profanity/blob/stabber-tests/stabbertests/stabbertestsuite.c)
+Example tests for Profanity can be found at: https://github.com/boothj5/profanity/tree/stabber-tests/functionaltests
