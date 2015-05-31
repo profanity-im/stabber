@@ -1,7 +1,7 @@
 #ifndef __H_STABBER
 #define __H_STABBER
 
-int stbbr_start(int port);
+int stbbr_start(int port, int httpport);
 void stbbr_stop(void);
 
 void stbbr_set_timeout(int seconds);

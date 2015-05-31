@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stabber.h>
 #include <pthread.h>
 
@@ -7,10 +8,12 @@ int
 main(int argc , char *argv[])
 {
     int port = 0;
+    int httpport = 0;
 
     GOptionEntry entries[] =
     {
         { "port", 'p', 0, G_OPTION_ARG_INT, &port, "Listen port", NULL },
+        { "http", 'h', 0, G_OPTION_ARG_INT, &httpport, "HTTP Listen port", NULL },
         { NULL }
     };
 
@@ -29,15 +32,11 @@ main(int argc , char *argv[])
     g_option_context_free(context);
 
     if (port == 0) {
-        port = 5230;
+        printf("Port must be specified with -p <port>\n");
+        return 1;
     }
 
-
-    if (argc == 2) {
-        port = atoi(argv[1]);
-    }
-
-    stbbr_start(port);
+    stbbr_start(port, httpport);
 
     pthread_exit(0);
 }

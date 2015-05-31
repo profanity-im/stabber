@@ -12,6 +12,7 @@
 #include "server/stanza.h"
 #include "server/verify.h"
 #include "server/server.h"
+#include "server/httpapi.h"
 #include "server/log.h"
 
 #define XML_START "<?xml version=\"1.0\"?>"
@@ -34,6 +35,7 @@ static void _shutdown(void);
 static int listen_socket;
 static pthread_t server_thread;
 static gboolean kill_recv = FALSE;
+static gboolean httpapi_run = FALSE;
 
 void
 write_stream(const char * const stream)
@@ -122,8 +124,6 @@ read_stream(void)
             log_println("RECV: </stream:stream>");
             log_println("--> Stream end callback fired");
             write_stream(STREAM_END);
-            log_println("");
-            log_println("");
             _shutdown();
             return 0;
         }
@@ -250,7 +250,7 @@ _start_server_cb(void* userdata)
 }
 
 int
-server_run(int port)
+server_run(int port, int httpport)
 {
     pthread_mutex_lock(&send_queue_lock);
     send_queue = NULL;
@@ -314,6 +314,16 @@ server_run(int port)
         return -1;
     }
 
+    // start http server
+    if (httpport > 0) {
+        res = httpapi_start(httpport);
+        if (!res) {
+            _shutdown();
+            return -1;
+        }
+        httpapi_run = TRUE;
+    }
+
     return 0;
 }
 
@@ -337,6 +347,11 @@ _shutdown(void)
 {
     log_println("SHUTDOWN");
 //    stanza_show_all();
+
+    if (httpapi_run) {
+        httpapi_stop();
+    }
+
     xmppclient_end_session(client);
     client = NULL;
 
@@ -354,5 +369,7 @@ _shutdown(void)
     send_queue = NULL;
     pthread_mutex_unlock(&send_queue_lock);
 
+    log_println("");
+    log_println("");
     log_close();
 }

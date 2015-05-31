@@ -2,6 +2,7 @@ lib_LTLIBRARIES = libstabber.la
 
 sources = \
 	src/server/server.c src/server/server.h \
+	src/server/httpapi.c src/server/httpapi.h \
 	src/server/xmppclient.c src/server/xmppclient.h \
 	src/server/parser.c src/server/parser.h \
     src/server/stanza.c src/server/stanza.h \

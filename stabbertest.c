@@ -4,7 +4,7 @@
 
 int main(void)
 {
-    stbbr_start(5230);
+    stbbr_start(5230, 5231);
 
     stbbr_auth_passwd("password");
 
