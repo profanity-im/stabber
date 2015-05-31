@@ -1,13 +1,17 @@
 # Stabber
 Stubbed XMPP (Jabber) Server.
+
 # Overview
-Stabber acts as a stubbed XMPP service for testing purposes, with an API to allow:
+Stabber acts as a stubbed XMPP service for testing purposes, the API allows:
 * Sending of XMPP stanzas.
 * Responding to XMPP stanzas with stubbed responses.
 * Verifying that XMPP stanzas were received.
 
+An HTTP API is also included, currently only supporting the send operation.
+
 The project is work in progress with only the basics implemented, and is being developed alongside https://github.com/boothj5/profanity
 Currently the only API is written in C.
+
 # Installing
 ```
 ./bootstrap.sh
@@ -15,7 +19,7 @@ Currently the only API is written in C.
 make
 make install (as root)
 ```
-# Using in a project
+# Using the C API
 Include the following header in your tests:
 ```
 #include <stabber.h>
@@ -24,23 +28,29 @@ Include the following in the linker path when compiling tests:
 ```
 -lstabber
 ```
-# API
+
+# C API
+
 ### Starting
 To start Stabber on port 5230 for example:
 ```c
-stbbr_start(5230);
+stbbr_start(5230, 0);
 ```
+The second argument is the port to use for the HTTP interface, a value of 0 will not start the HTTP daemon.
+
 ### Stopping
 To stop Stabber:
 ```c
 stbbr_stop();
 ```
+
 ### Authentication
 Currently only legacy authentication is supported, to set the password that stabber expects when an account connects:
 ```c
 stbbr_auth_passwd("mypassword");
 ```
 The default if not set is "password".
+
 ### Sending stanzas
 To make Stabber send an XMPP stanza:
 ```c
@@ -50,6 +60,7 @@ stbbr_send(
     "</iq>"
 );
 ```
+
 ### Responding to stanzas
 As well as being able to send an XMPP stanza at any time, you can also respond to a stanza by its id attribute:
 ```c
@@ -59,6 +70,7 @@ stbbr_for("msg_21",
     "</message>"
 );
 ```
+
 ### Verify sent stanzas
 To verify that you sent a particular stanza to Stabber:
 ```c
@@ -95,5 +107,18 @@ Stabber logs to:
 ```
 ~/.local/share/stabber/logs/stabber.log
 ```
-# Example
-Example tests for Profanity can be found at: https://github.com/boothj5/profanity/blob/stabber-tests/stabbertests/test_connect.c (the starting and stopping between tests is handled by the setup and teardown routines https://github.com/boothj5/profanity/blob/stabber-tests/stabbertests/stabbertestsuite.c)
+
+# HTTP API
+To start stabber in standalone mode:
+```
+stabber -p 5230 -h 5231
+```
+The second argument is the HTTP port on which Stabber will listen.
+
+To send a message to a client currently connected to stabber on port 5230, send a POST request to `http://localhost:5231/send` with the body containing the stanza to send, e.g.:
+```
+curl --data '<message id="prof_msg_12" to="stabber@localhost/profanity" from="buddy1@localhost/laptop" type="chat"><body>Here's a message sent from stabber, using the HTTP api</body></message>' http://localhost:5231/send
+```
+
+# Examples
+Example tests for Profanity can be found at: https://github.com/boothj5/profanity/blob/stabber-tests/stabbertests (the starting and stopping between tests is handled by the setup and teardown routines https://github.com/boothj5/profanity/blob/stabber-tests/stabbertests/stabbertestsuite.c)
