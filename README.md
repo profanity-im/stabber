@@ -102,6 +102,14 @@ By default the verification calls block for up to 10 seconds, the timeout in sec
 stbbr_set_timeout(3);
 ```
 A value of 0 or less is non-blocking and will return immediately.
+
+### Waiting
+Sometimes a test needs to wait until the client being tested has had time to send some specific stanzas. The following will block until a stanza with a particular ID has been received by Stabber:
+
+```c
+stbbr_wait_for("someid");
+```
+
 # Logs
 Stabber logs to:
 ```
