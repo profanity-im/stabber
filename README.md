@@ -21,7 +21,7 @@ make install (as root)
 ```
 # Using the C API
 Include the following header in your tests:
-```
+```c
 #include <stabber.h>
 ````
 Include the following in the linker path when compiling tests:
