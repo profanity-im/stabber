@@ -32,6 +32,7 @@
 
 #include "server/log.h"
 #include "server/server.h"
+#include "server/prime.h"
 
 struct MHD_Daemon *httpdaemmon = NULL;
 
@@ -39,7 +40,8 @@ struct MHD_Daemon *httpdaemmon = NULL;
 
 typedef enum {
     STBBR_OP_UNKNOWN,
-    STBBR_OP_SEND
+    STBBR_OP_SEND,
+    STBBR_OP_FOR
 } stbbr_op_t;
 
 typedef struct conn_info_t {
@@ -92,6 +94,8 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
 
         if (g_strcmp0(method, "POST") == 0 && g_strcmp0(url, "/send") == 0) {
             con_info->stbbr_op = STBBR_OP_SEND;
+        } else if (g_strcmp0(method, "POST") == 0 && g_strcmp0(url, "/for") == 0) {
+            con_info->stbbr_op = STBBR_OP_FOR;
         } else {
             con_info->stbbr_op = STBBR_OP_UNKNOWN;
             return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
@@ -110,10 +114,24 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
 
         return MHD_YES;
     } else {
+        const char *id = NULL;
+
         switch (con_info->stbbr_op) {
+
         case STBBR_OP_SEND:
             server_send(con_info->body->str);
             return send_response(conn, NULL, MHD_HTTP_OK);
+
+        case STBBR_OP_FOR:
+            id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
+            if (id) {
+                prime_for(id, con_info->body->str);
+                return send_response(conn, NULL, MHD_HTTP_OK);
+            } else {
+                return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
+            }
+
+
         default:
             return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
         }
