@@ -8,7 +8,7 @@ int main(void)
 
     stbbr_auth_passwd("password");
 
-    stbbr_for("roster",
+    stbbr_for_id("roster",
         "<iq id=\"roster\" type=\"result\" to=\"stabber@localhost/profanity\">"
             "<query xmlns=\"jabber:iq:roster\" ver=\"362\">"
                 "<item jid=\"buddy1@localhost\" subscription=\"both\" name=\"Buddy1\"/>"
@@ -16,7 +16,7 @@ int main(void)
             "</query>"
         "</iq>");
 
-    stbbr_for("prof_presence_1",
+    stbbr_for_id("prof_presence_1",
         "<presence to=\"stabber@localhost\" from=\"buddy1@localhost/mobile\">"
             "<show>dnd</show>"
             "<status>busy!</status>"
@@ -30,12 +30,12 @@ int main(void)
             "<status>Out of office</status>"
         "</presence>");
 
-    stbbr_for("prof_msg_2",
+    stbbr_for_id("prof_msg_2",
         "<message id=\"message1\" to=\"stabber@localhost\" from=\"buddy1@localhost/mobile\" type=\"chat\">"
         "<body>Welcome!!</body>"
         "</message>");
 
-    stbbr_for("prof_msg_3",
+    stbbr_for_id("prof_msg_3",
         "<message id=\"message2\" to=\"stabber@localhost\" from=\"buddy1@localhost/laptop\" type=\"chat\">"
         "<body>From me laptop</body>"
         "</message>");

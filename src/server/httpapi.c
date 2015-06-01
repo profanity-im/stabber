@@ -125,7 +125,7 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
         case STBBR_OP_FOR:
             id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
             if (id) {
-                prime_for(id, con_info->body->str);
+                prime_for_id(id, con_info->body->str);
                 return send_response(conn, NULL, MHD_HTTP_OK);
             } else {
                 return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);

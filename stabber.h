@@ -29,7 +29,7 @@ void stbbr_stop(void);
 void stbbr_set_timeout(int seconds);
 
 int stbbr_auth_passwd(char *password);
-void stbbr_for(char *id, char *stream);
+void stbbr_for_id(char *id, char *stream);
 
 void stbbr_wait_for(char *id);
 

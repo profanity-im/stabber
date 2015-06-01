@@ -29,7 +29,7 @@ void prime_free_all(void);
 void prime_required_passwd(char *password);
 char* prime_get_passwd(void);
 
-int prime_for(const char *id, char *stream);
+int prime_for_id(const char *id, char *stream);
 char* prime_get_for(const char *id);
 
 #endif

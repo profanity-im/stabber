@@ -52,9 +52,9 @@ stbbr_auth_passwd(char *password)
 }
 
 int
-stbbr_for(char *id, char *stream)
+stbbr_for_id(char *id, char *stream)
 {
-    prime_for(id, stream);
+    prime_for_id(id, stream);
     return 1;
 }
 
