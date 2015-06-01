@@ -42,9 +42,6 @@
 #define STREAM_RESP  "<stream:stream from=\"localhost\" id=\"stream1\" xml:lang=\"en\" version=\"1.0\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\">"
 #define FEATURES "<stream:features></stream:features>"
 
-#define AUTH_RESP "<iq id=\"_xmpp_auth1\" type=\"result\"/>"
-#define AUTH_FAIL "<iq id=\"_xmpp_auth1\" type=\"error\"/>"
-
 #define STREAM_END "</stream:stream>"
 
 pthread_mutex_t send_queue_lock;
@@ -170,23 +167,50 @@ auth_callback(XMPPStanza *stanza)
 {
     log_println("--> Auth callback fired");
 
+    const char *id = stanza_get_id(stanza);
     XMPPStanza *query = stanza_get_child_by_ns(stanza, "jabber:iq:auth");
     XMPPStanza *username = stanza_get_child_by_name(query, "username");
     XMPPStanza *password = stanza_get_child_by_name(query, "password");
     XMPPStanza *resource = stanza_get_child_by_name(query, "resource");
 
-    client->username = strdup(username->content->str);
-    client->password = strdup(password->content->str);
-    client->resource = strdup(resource->content->str);
+    if (!username || !password || !resource) {
+        GString *authfields = g_string_new("<iq type=\"result\" id=\"");
+        g_string_append(authfields, id);
+        g_string_append(authfields, "\"><query xmlns=\"jabber:iq:auth\">");
+        if (!username) {
+            g_string_append(authfields, "<username/>");
+        }
+        if (!password) {
+            g_string_append(authfields, "<password/>");
+        }
+        if (!resource) {
+            g_string_append(authfields, "<resource/>");
+        }
+        g_string_append(authfields, "</query></iq>");
+        write_stream(authfields->str);
+        g_string_free(authfields, TRUE);
+    } else {
+        client->username = strdup(username->content->str);
+        client->password = strdup(password->content->str);
+        client->resource = strdup(resource->content->str);
 
-    char *expected_password = prime_get_passwd();
-    if (g_strcmp0(client->password, expected_password) != 0) {
-        write_stream(AUTH_FAIL);
-        write_stream(STREAM_END);
-        return;
+        char *expected_password = prime_get_passwd();
+        if (g_strcmp0(client->password, expected_password) != 0) {
+            GString *authfail = g_string_new("<iq id=\"");
+            g_string_append(authfail, id);
+            g_string_append(authfail, "\" type=\"error\"/>");
+            write_stream(authfail->str);
+            g_string_free(authfail, TRUE);
+            write_stream(STREAM_END);
+            return;
+        }
+
+        GString *authsuccess = g_string_new("<iq id=\"");
+        g_string_append(authsuccess, id);
+        g_string_append(authsuccess, "\" type=\"result\"/>");
+        write_stream(authsuccess->str);
+        g_string_free(authsuccess, TRUE);
     }
-
-    write_stream(AUTH_RESP);
 }
 
 void
