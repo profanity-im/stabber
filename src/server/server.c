@@ -29,7 +29,7 @@
 #include <fcntl.h>
 
 #include "server/xmppclient.h"
-#include "server/parser.h"
+#include "server/stream_parser.h"
 #include "server/prime.h"
 #include "server/stanza.h"
 #include "server/verify.h"
@@ -216,10 +216,25 @@ auth_callback(XMPPStanza *stanza)
 void
 id_callback(const char *id)
 {
-    char *stream = prime_get_for(id);
+    char *stream = prime_get_for_id(id);
     if (stream) {
         log_println("--> ID callback fired for '%s'", id);
         write_stream(stream);
+    }
+}
+
+void
+query_callback(const char *query, const char *id)
+{
+    XMPPStanza *stanza = prime_get_for_query(query);
+    if (stanza) {
+        log_println("--> QUERY callback fired for '%s'", query);
+        stanza_set_id(stanza, id);
+        char *stream = stanza_to_string(stanza);
+        write_stream(stream);
+
+        stanza_free(stanza);
+        free(stream);
     }
 }
 
@@ -288,7 +303,7 @@ _start_server_cb(void* userdata)
     }
 
     client = xmppclient_new(client_addr, client_socket);
-    parser_init(stream_start_callback, auth_callback, id_callback);
+    parser_init(stream_start_callback, auth_callback, id_callback, query_callback);
 
     read_stream();
 

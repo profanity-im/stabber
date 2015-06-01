@@ -96,6 +96,58 @@ stanza_show_all(void)
     pthread_mutex_unlock(&stanzas_lock);
 }
 
+char *
+stanza_to_string(XMPPStanza *stanza)
+{
+    GString *stanza_str = g_string_new("<");
+
+    g_string_append(stanza_str, stanza->name);
+
+    if (stanza->attrs) {
+        GList *curr = stanza->attrs;
+        while (curr) {
+            XMPPAttr *attr = curr->data;
+            g_string_append(stanza_str, " ");
+            g_string_append(stanza_str, attr->name);
+            g_string_append(stanza_str, "=\"");
+            g_string_append(stanza_str, attr->value);
+            g_string_append(stanza_str, "\"");
+
+            curr = g_list_next(curr);
+        }
+    }
+
+    if (stanza->content) {
+        g_string_append(stanza_str, ">");
+        g_string_append(stanza_str, stanza->content->str);
+        g_string_append(stanza_str, "</");
+        g_string_append(stanza_str, stanza->name);
+        g_string_append(stanza_str, ">");
+    } else if (stanza->children) {
+        g_string_append(stanza_str, ">");
+
+        GList *curr = stanza->children;
+        while (curr) {
+            XMPPStanza *child = curr->data;
+            char *child_str = stanza_to_string(child);
+            g_string_append(stanza_str, child_str);
+            free(child_str);
+            curr = g_list_next(curr);
+        }
+
+        g_string_append(stanza_str, "</");
+        g_string_append(stanza_str, stanza->name);
+        g_string_append(stanza_str, ">");
+    } else {
+        g_string_append(stanza_str, "/>");
+    }
+
+    char *result = stanza_str->str;
+    g_string_free(stanza_str, FALSE);
+
+    return result;
+}
+
 int
 stanzas_contains_id(char *id)
 {
@@ -212,6 +264,72 @@ stanza_get_id(XMPPStanza *stanza)
     }
 
     return NULL;
+}
+
+void
+stanza_set_id(XMPPStanza *stanza, const char *id)
+{
+    GList *curr_attr = stanza->attrs;
+    while (curr_attr) {
+        XMPPAttr *attr = curr_attr->data;
+        if (g_strcmp0(attr->name, "id") == 0) {
+            free(attr->value);
+            attr->value = strdup(id);
+            return;
+        }
+
+        curr_attr = g_list_next(curr_attr);
+    }
+
+    XMPPAttr *attrnew = malloc(sizeof(XMPPAttr));
+    attrnew->name = strdup("id");
+    attrnew->value = strdup(id);
+    stanza->attrs = g_list_append(stanza->attrs, attrnew);
+}
+
+const char *
+stanza_get_attr(XMPPStanza *stanza, const char *name)
+{
+    if (!stanza->attrs) {
+        return NULL;
+    }
+
+    GList *curr_attr = stanza->attrs;
+    while (curr_attr) {
+        XMPPAttr *attr = curr_attr->data;
+        if (g_strcmp0(attr->name, name) == 0) {
+            return attr->value;
+        }
+
+        curr_attr = g_list_next(curr_attr);
+    }
+
+    return NULL;
+}
+
+const char *
+stanza_get_query_request(XMPPStanza *stanza)
+{
+    if (g_strcmp0(stanza->name, "iq") != 0) {
+        return NULL;
+    }
+
+    const char *type = stanza_get_attr(stanza, "type");
+    if (g_strcmp0(type, "get") != 0) {
+        return NULL;
+    }
+
+    XMPPStanza *query = stanza_get_child_by_name(stanza, "query");
+    if (!query) {
+        return NULL;
+    }
+
+    const char *xmlns = stanza_get_attr(query, "xmlns");
+    if (!xmlns) {
+        return NULL;
+    }
+
+    return xmlns;
 }
 
 static int

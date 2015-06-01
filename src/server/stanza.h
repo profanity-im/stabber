@@ -44,6 +44,8 @@ void stanza_show_all(void);
 void stanza_add(XMPPStanza *stanza);
 void stanza_add_child(XMPPStanza *parent, XMPPStanza *child);
 const char* stanza_get_id(XMPPStanza *stanza);
+void stanza_set_id(XMPPStanza *stanza, const char *id);
+const char *stanza_get_query_request(XMPPStanza *stanza);
 
 XMPPStanza* stanza_get_child_by_ns(XMPPStanza *stanza, char *ns);
 XMPPStanza* stanza_get_child_by_name(XMPPStanza *stanza, char *name);
@@ -55,5 +57,7 @@ int stanzas_contains_id(char *id);
 
 void stanza_free(XMPPStanza *stanza);
 void stanza_free_all(void);
+
+char* stanza_to_string(XMPPStanza *stanza);
 
 #endif

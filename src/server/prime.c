@@ -25,14 +25,19 @@
 
 #include <string.h>
 
+#include "server/stanza.h"
+#include "server/parser.h"
+
 static char *required_passwd = NULL;
 static GHashTable *idstubs = NULL;
+static GHashTable *querystubs = NULL;
 
 void
 prime_init(void)
 {
     required_passwd = strdup("password");
     idstubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+    querystubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, (GDestroyNotify)stanza_free);
 }
 
 void
@@ -44,7 +49,12 @@ prime_free_all(void)
     if (idstubs) {
         g_hash_table_destroy(idstubs);
     }
-    idstubs = NULL;
+
+    querystubs = NULL;
+    if (querystubs) {
+        g_hash_table_destroy(querystubs);
+    }
+    querystubs = NULL;
 }
 
 void
@@ -69,7 +79,22 @@ prime_for_id(const char *id, char *stream)
 }
 
 char*
-prime_get_for(const char *id)
+prime_get_for_id(const char *id)
 {
     return g_hash_table_lookup(idstubs, id);
+}
+
+void
+prime_for_query(const char *query, char *stream)
+{
+    if (querystubs) {
+        XMPPStanza *stanza = parse_stanza(stream);
+        g_hash_table_insert(querystubs, strdup(query), stanza);
+    }
+}
+
+XMPPStanza *
+prime_get_for_query(const char *query)
+{
+    return g_hash_table_lookup(querystubs, query);
 }

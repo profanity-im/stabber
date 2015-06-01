@@ -43,5 +43,6 @@ configure.lineno
 src/server/prime.lo
 src/server/verify.lo
 src/server/httpapi.lo
+src/server/stream_parser.lo
 
 stabbertest

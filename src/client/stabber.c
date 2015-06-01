@@ -58,6 +58,13 @@ stbbr_for_id(char *id, char *stream)
     return 1;
 }
 
+int
+stbbr_for_query(char *query, char *stream)
+{
+    prime_for_query(query, stream);
+    return 1;
+}
+
 void
 stbbr_wait_for(char *id)
 {
