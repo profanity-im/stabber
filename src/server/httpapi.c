@@ -37,7 +37,13 @@ struct MHD_Daemon *httpdaemmon = NULL;
 
 #define POSTBUFFERSIZE 2048
 
+typedef enum {
+    STBBR_OP_UNKNOWN,
+    STBBR_OP_SEND
+} stbbr_op_t;
+
 typedef struct conn_info_t {
+    stbbr_op_t stbbr_op;
     GString *body;
 } ConnectionInfo;
 
@@ -85,11 +91,9 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
         ConnectionInfo *con_info = create_connection_info();
 
         if (g_strcmp0(method, "POST") == 0 && g_strcmp0(url, "/send") == 0) {
-            if (*size != 0) {
-                g_string_append_len(con_info->body, data, *size);
-                *size = 0;
-            }
+            con_info->stbbr_op = STBBR_OP_SEND;
         } else {
+            con_info->stbbr_op = STBBR_OP_UNKNOWN;
             return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
         }
 
@@ -106,9 +110,13 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
 
         return MHD_YES;
     } else {
-        server_send(con_info->body->str);
-
-        return send_response(conn, NULL, MHD_HTTP_OK);
+        switch (con_info->stbbr_op) {
+        case STBBR_OP_SEND:
+            server_send(con_info->body->str);
+            return send_response(conn, NULL, MHD_HTTP_OK);
+        default:
+            return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
+        }
     }
 }
 
