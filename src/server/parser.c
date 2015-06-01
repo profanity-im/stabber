@@ -70,9 +70,6 @@ XMPPStanza *
 parse_stanza(char *stanza_text)
 {
     depth = 0;
-    if (curr_stanza) {
-        stanza_free(curr_stanza);
-    }
     XML_Parser parser = XML_ParserCreate(NULL);
     XML_SetElementHandler(parser, start_element, end_element);
     XML_SetCharacterDataHandler(parser, handle_data);

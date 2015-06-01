@@ -49,8 +49,8 @@ prime_free_all(void)
     if (idstubs) {
         g_hash_table_destroy(idstubs);
     }
+    idstubs = NULL;
 
-    querystubs = NULL;
     if (querystubs) {
         g_hash_table_destroy(querystubs);
     }

@@ -232,8 +232,6 @@ query_callback(const char *query, const char *id)
         stanza_set_id(stanza, id);
         char *stream = stanza_to_string(stanza);
         write_stream(stream);
-
-        stanza_free(stanza);
         free(stream);
     }
 }
