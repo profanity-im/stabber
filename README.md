@@ -7,7 +7,7 @@ Stabber acts as a stubbed XMPP service for testing purposes, the API allows:
 * Responding to XMPP stanzas with stubbed responses.
 * Verifying that XMPP stanzas were received.
 
-An HTTP API is also included, currently only supporting the send operation.
+An HTTP API is also included, currently only supporting the `stbbr_send` and `stbbr_for` operations.
 
 The project is work in progress with only the basics implemented, and is being developed alongside https://github.com/boothj5/profanity
 Currently the only API is written in C.
@@ -125,7 +125,12 @@ The second argument is the HTTP port on which Stabber will listen.
 
 To send a message to a client currently connected to Stabber on port 5230, send a POST request to `http://localhost:5231/send` with the body containing the stanza to send, e.g.:
 ```
-curl --data '<message id="prof_msg_12" to="stabber@localhost/profanity" from="buddy1@localhost/laptop" type="chat"><body>Here is a message sent from stabber, using the HTTP api</body></message>' http://localhost:5231/send
+curl --data '<message id="mesg10" to="stabber@localhost/profanity" from="buddy1@localhost/laptop" type="chat"><body>Here is a message sent from stabber, using the HTTP api</body></message>' http://localhost:5231/send
+```
+
+To respond to a stanza with a specfic id sent from the client, send a POST request to `http://localhost:5231/for?id=<id>` where `<id>` is the the id you wish to respond to, e.g.:
+```
+curl --data '<message id="messageid1" to="stabber@localhost/profanity" from="buddy1@localhost/work" type="chat"><body>heres my answer!</body></message>' http://localhost:5231/for?id=prof_msg_1
 ```
 
 # Examples
