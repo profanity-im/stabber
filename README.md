@@ -4,10 +4,10 @@ Stubbed XMPP (Jabber) Server.
 # Overview
 Stabber acts as a stubbed XMPP service for testing purposes, the API allows:
 * Sending of XMPP stanzas.
-* Responding to XMPP stanzas with stubbed responses.
+* Responding to XMPP stanzas with stubbed responses, by id, and by query namespace
 * Verifying that XMPP stanzas were received.
 
-An HTTP API is also included, currently only supporting the `stbbr_send` and `stbbr_for` operations.
+An HTTP API is also included, currently only supporting the `stbbr_send` and `stbbr_for_id` operations.
 
 The project is work in progress with only the basics implemented, and is being developed alongside https://github.com/boothj5/profanity
 Currently the only API is written in C.
@@ -64,12 +64,24 @@ stbbr_send(
 ### Responding to stanzas
 As well as being able to send an XMPP stanza at any time, you can also respond to a stanza by its id attribute:
 ```c
-stbbr_for("msg_21",
+stbbr_for_id("msg_21",
     "<message id=\"message17\" to=\"stabber@localhost\" from=\"buddy1@localhost/mobile\" type=\"chat\">"
         "<body>I'm not real!</body>"
     "</message>"
 );
 ```
+To respond to an IQ get query (for example a roster request), use the following:
+```c
+stbbr_for_query("jabber:iq:roster",
+    "<iq type=\"result\" to=\"stabber@localhost/profanity\">"
+        "<query xmlns=\"jabber:iq:roster\" ver=\"362\">"
+            "<item jid=\"buddy1@localhost\" subscription=\"both\" name=\"Buddy1\"/>"
+            "<item jid=\"buddy2@localhost\" subscription=\"both\" name=\"Buddy2\"/>"
+        "</query>"
+    "</iq>"
+);
+```
+Note that no ID is included in the stubbed response, Stabber will use the ID sent in the query. If an ID is supplied, it wil be overwitten by Stabber, again  using the ID sent in the query.
 
 ### Verify sent stanzas
 To verify that you sent a particular stanza to Stabber:
