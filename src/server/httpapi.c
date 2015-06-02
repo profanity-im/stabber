@@ -115,6 +115,7 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
         return MHD_YES;
     } else {
         const char *id = NULL;
+        const char *query = NULL;
 
         switch (con_info->stbbr_op) {
 
@@ -124,13 +125,22 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
 
         case STBBR_OP_FOR:
             id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
-            if (id) {
-                prime_for_id(id, con_info->body->str);
-                return send_response(conn, NULL, MHD_HTTP_OK);
-            } else {
+            query = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "query");
+            if (id && query) {
                 return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
             }
 
+            if (id) {
+                prime_for_id(id, con_info->body->str);
+                return send_response(conn, NULL, MHD_HTTP_CREATED);
+            }
+
+            if (query) {
+                prime_for_query(query, con_info->body->str);
+                return send_response(conn, NULL, MHD_HTTP_CREATED);
+            }
+
+            return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
 
         default:
             return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
