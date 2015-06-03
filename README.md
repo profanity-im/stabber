@@ -7,7 +7,7 @@ Stabber acts as a stubbed XMPP service for testing purposes, the API allows:
 * Responding to XMPP stanzas with stubbed responses, by id, and by query namespace
 * Verifying that XMPP stanzas were received.
 
-An HTTP API is also included, currently only supporting the `stbbr_send` and `stbbr_for_id` operations.
+An HTTP API is also included, currently only supporting the `stbbr_send`, `stbbr_for_id` and `stbbr_for_query` operations.
 
 The project is work in progress with only the basics implemented, and is being developed alongside https://github.com/boothj5/profanity
 Currently the only API is written in C.
@@ -135,14 +135,20 @@ stabber -p 5230 -h 5231
 ```
 The second argument is the HTTP port on which Stabber will listen.
 
+### Sending stanzas
 To send a message to a client currently connected to Stabber on port 5230, send a POST request to `http://localhost:5231/send` with the body containing the stanza to send, e.g.:
 ```
 curl --data '<message id="mesg10" to="stabber@localhost/profanity" from="buddy1@localhost/laptop" type="chat"><body>Here is a message sent from stabber, using the HTTP api</body></message>' http://localhost:5231/send
 ```
 
+### Responding to stanzas
 To respond to a stanza with a specfic id sent from the client, send a POST request to `http://localhost:5231/for?id=<id>` where `<id>` is the the id you wish to respond to, e.g.:
 ```
 curl --data '<message id="messageid1" to="stabber@localhost/profanity" from="buddy1@localhost/work" type="chat"><body>heres my answer!</body></message>' http://localhost:5231/for?id=prof_msg_1
+```
+To respond to a stanza with a specfic query namespace sent from the client, send a POST request to `http://localhost:5231/for?query=<xmlns>` where `<xmlns>` is the the query namespace you wish to respond to, e.g.:
+```
+curl --data '<iq type="result" to="stabber@localhost/profanity"><query xmlns="jabber:iq:roster" ver="362"><item jid="buddy1@localhost" subscription="both" name="Buddy1"/><item jid="buddy2@localhost" subscription="both" name="Buddy2"/></query></iq>' http://localhost:5231/for?query=jabber:iq:roster
 ```
 
 # Examples
