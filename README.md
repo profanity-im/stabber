@@ -152,4 +152,4 @@ curl --data '<iq type="result" to="stabber@localhost/profanity"><query xmlns="ja
 ```
 
 # Examples
-Example tests for Profanity can be found at: https://github.com/boothj5/profanity/tree/stabber-tests/functionaltests
+Example tests for Profanity can be found at: https://github.com/boothj5/profanity/tree/master/functionaltests
