@@ -168,6 +168,30 @@ stanza_get_child_by_name(XMPPStanza *stanza, char *name)
     return NULL;
 }
 
+const char *
+stanza_get_id(XMPPStanza *stanza)
+{
+    if (!stanza) {
+        return NULL;
+    }
+
+    if (!stanza->attrs) {
+        return NULL;
+    }
+
+    GList *curr_attr = stanza->attrs;
+    while (curr_attr) {
+        XMPPAttr *attr = curr_attr->data;
+        if (g_strcmp0(attr->name, "id") == 0) {
+            return attr->value;
+        }
+
+        curr_attr = g_list_next(curr_attr);
+    }
+
+    return NULL;
+}
+
 static void
 start_element(void *data, const char *element, const char **attributes)
 {

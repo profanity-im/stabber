@@ -62,30 +62,6 @@ stanza_add(XMPPStanza *stanza)
     pthread_mutex_unlock(&stanzas_lock);
 }
 
-const char *
-stanza_get_id(XMPPStanza *stanza)
-{
-    if (!stanza) {
-        return NULL;
-    }
-
-    if (!stanza->attrs) {
-        return NULL;
-    }
-
-    GList *curr_attr = stanza->attrs;
-    while (curr_attr) {
-        XMPPAttr *attr = curr_attr->data;
-        if (g_strcmp0(attr->name, "id") == 0) {
-            return attr->value;
-        }
-
-        curr_attr = g_list_next(curr_attr);
-    }
-
-    return NULL;
-}
-
 void
 stanza_set_id(XMPPStanza *stanza, const char *id)
 {
