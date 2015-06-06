@@ -259,6 +259,30 @@ stanza_get_query_request(XMPPStanza *stanza)
 }
 
 static void
+_attrs_free(XMPPAttr *attr)
+{
+    if (attr) {
+        free(attr->name);
+        free(attr->value);
+        free(attr);
+    }
+}
+
+void
+stanza_free(XMPPStanza *stanza)
+{
+    if (stanza) {
+        free(stanza->name);
+        if (stanza->content) {
+            g_string_free(stanza->content, TRUE);
+        }
+        g_list_free_full(stanza->attrs, (GDestroyNotify)_attrs_free);
+        g_list_free_full(stanza->children, (GDestroyNotify)stanza_free);
+        free(stanza);
+    }
+}
+
+static void
 start_element(void *data, const char *element, const char **attributes)
 {
     ParseState *state = data;

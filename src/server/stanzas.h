@@ -34,7 +34,6 @@ int stanza_verify_last(XMPPStanza *stanza);
 
 int stanzas_contains_id(char *id);
 
-void stanza_free(XMPPStanza *stanza);
 void stanza_free_all(void);
 
 #endif
