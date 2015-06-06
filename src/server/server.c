@@ -407,7 +407,7 @@ _shutdown(void)
     close(listen_socket);
 
     prime_free_all();
-    stanza_free_all();
+    stanzas_free_all();
 
     pthread_mutex_lock(&send_queue_lock);
     g_list_free_full(send_queue, free);

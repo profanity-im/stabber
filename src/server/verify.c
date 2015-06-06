@@ -96,12 +96,12 @@ verify_any(char *stanza_text)
 
     int result = 0;
     if (timeoutsecs <= 0) {
-        result = stanza_verify_any(curr_stanza);
+        result = stanzas_verify_any(curr_stanza);
     } else {
         double elapsed = 0.0;
         GTimer *timer = g_timer_new();
         while (elapsed < timeoutsecs * 1.0) {
-            result = stanza_verify_any(curr_stanza);
+            result = stanzas_verify_any(curr_stanza);
             if (result) {
                 break;
             }
@@ -136,12 +136,12 @@ verify_last(char *stanza_text)
 
     int result = 0;
     if (timeoutsecs <= 0) {
-        result = stanza_verify_last(curr_stanza);
+        result = stanzas_verify_last(curr_stanza);
     } else {
         double elapsed = 0.0;
         GTimer *timer = g_timer_new();
         while (elapsed < timeoutsecs * 1.0) {
-            result = stanza_verify_last(curr_stanza);
+            result = stanzas_verify_last(curr_stanza);
             if (result) {
                 break;
             }

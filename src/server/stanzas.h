@@ -27,13 +27,13 @@
 
 #include "server/stanza.h"
 
-void stanza_add(XMPPStanza *stanza);
+void stanzas_add(XMPPStanza *stanza);
 
-int stanza_verify_any(XMPPStanza *stanza);
-int stanza_verify_last(XMPPStanza *stanza);
+int stanzas_verify_any(XMPPStanza *stanza);
+int stanzas_verify_last(XMPPStanza *stanza);
 
 int stanzas_contains_id(char *id);
 
-void stanza_free_all(void);
+void stanzas_free_all(void);
 
 #endif

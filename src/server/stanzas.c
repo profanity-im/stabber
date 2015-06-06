@@ -55,7 +55,7 @@ stanzas_contains_id(char *id)
 }
 
 void
-stanza_add(XMPPStanza *stanza)
+stanzas_add(XMPPStanza *stanza)
 {
     pthread_mutex_lock(&stanzas_lock);
     stanzas = g_list_append(stanzas, stanza);
@@ -149,7 +149,7 @@ _stanzas_equal(XMPPStanza *first, XMPPStanza *second)
 }
 
 int
-stanza_verify_any(XMPPStanza *stanza)
+stanzas_verify_any(XMPPStanza *stanza)
 {
     pthread_mutex_lock(&stanzas_lock);
     if (!stanzas) {
@@ -173,7 +173,7 @@ stanza_verify_any(XMPPStanza *stanza)
 }
 
 int
-stanza_verify_last(XMPPStanza *stanza)
+stanzas_verify_last(XMPPStanza *stanza)
 {
     pthread_mutex_lock(&stanzas_lock);
     if (!stanzas) {
@@ -198,7 +198,7 @@ stanza_verify_last(XMPPStanza *stanza)
 }
 
 void
-stanza_free_all(void)
+stanzas_free_all(void)
 {
     pthread_mutex_lock(&stanzas_lock);
     g_list_free_full(stanzas, (GDestroyNotify)stanza_free);

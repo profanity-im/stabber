@@ -75,7 +75,7 @@ end_element(void *data, const char *element)
         curr_stanza = curr_stanza->parent;
     } else {
         log_println("RECV: %s", curr_string->str);
-        stanza_add(curr_stanza);
+        stanzas_add(curr_stanza);
         if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
             auth_cb(curr_stanza);
         } else {
