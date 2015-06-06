@@ -26,56 +26,67 @@
 
 #include "server/stanza.h"
 
-static int depth = 0;
-static XMPPStanza *curr_stanza = NULL;
+typedef struct parse_state_t {
+    int depth;
+    XMPPStanza *curr_stanza;
+} ParseState;
 
 static void
 start_element(void *data, const char *element, const char **attributes)
 {
-    XMPPStanza *stanza = stanza_new(element, attributes);
+    ParseState *state = data;
 
-    if (depth == 0) {
-        curr_stanza = stanza;
-        curr_stanza->parent = NULL;
+    XMPPStanza *stanza = stanza_new(element, attributes);
+    if (state->depth == 0) {
+        state->curr_stanza = stanza;
+        state->curr_stanza->parent = NULL;
     } else {
-        stanza->parent = curr_stanza;
-        curr_stanza = stanza;
+        stanza->parent = state->curr_stanza;
+        state->curr_stanza = stanza;
     }
 
-    depth++;
+    state->depth++;
 }
 
 static void
 end_element(void *data, const char *element)
 {
-    depth--;
+    ParseState *state = data;
 
-    if (depth > 0) {
-        stanza_add_child(curr_stanza->parent, curr_stanza);
-        curr_stanza = curr_stanza->parent;
+    state->depth--;
+
+    if (state->depth > 0) {
+        stanza_add_child(state->curr_stanza->parent, state->curr_stanza);
+        state->curr_stanza = state->curr_stanza->parent;
     }
 }
 
 static void
 handle_data(void *data, const char *content, int length)
 {
-    if (!curr_stanza->content) {
-        curr_stanza->content = g_string_new("");
+    ParseState *state = data;
+
+    if (!state->curr_stanza->content) {
+        state->curr_stanza->content = g_string_new("");
     }
 
-    g_string_append_len(curr_stanza->content, content, length);
+    g_string_append_len(state->curr_stanza->content, content, length);
 }
 
 XMPPStanza *
 parse_stanza(char *stanza_text)
 {
-    depth = 0;
+    ParseState *state = malloc(sizeof(ParseState));
+    state->depth = 0;
+    state->curr_stanza = NULL;
+
     XML_Parser parser = XML_ParserCreate(NULL);
     XML_SetElementHandler(parser, start_element, end_element);
     XML_SetCharacterDataHandler(parser, handle_data);
+    XML_SetUserData(parser, state);
 
     XML_Parse(parser, stanza_text, strlen(stanza_text), 0);
     XML_ParserFree(parser);
 
-    return curr_stanza;
+    return state->curr_stanza;
 }
