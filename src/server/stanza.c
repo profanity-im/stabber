@@ -105,6 +105,12 @@ stanza_to_string(XMPPStanza *stanza)
     return result;
 }
 
+void
+stanza_add_child(XMPPStanza *parent, XMPPStanza *child)
+{
+    parent->children = g_list_append(parent->children, child);
+}
+
 static void
 start_element(void *data, const char *element, const char **attributes)
 {

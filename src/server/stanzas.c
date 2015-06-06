@@ -62,12 +62,6 @@ stanza_add(XMPPStanza *stanza)
     pthread_mutex_unlock(&stanzas_lock);
 }
 
-void
-stanza_add_child(XMPPStanza *parent, XMPPStanza *child)
-{
-    parent->children = g_list_append(parent->children, child);
-}
-
 XMPPStanza*
 stanza_get_child_by_ns(XMPPStanza *stanza, char *ns)
 {
