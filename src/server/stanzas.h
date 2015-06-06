@@ -27,7 +27,6 @@
 
 #include "server/stanza.h"
 
-XMPPStanza* stanza_new(const char *name, const char **attributes);
 void stanza_show(XMPPStanza *stanza);
 void stanza_show_all(void);
 void stanza_add(XMPPStanza *stanza);

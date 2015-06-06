@@ -38,6 +38,7 @@ typedef struct xmpp_stanza_t {
     struct xmpp_stanza_t *parent;
 } XMPPStanza;
 
+XMPPStanza* stanza_new(const char *name, const char **attributes);
 XMPPStanza* parse_stanza(char *stanza_text);
 
 #endif
