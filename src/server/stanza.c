@@ -213,6 +213,51 @@ stanza_set_id(XMPPStanza *stanza, const char *id)
     stanza->attrs = g_list_append(stanza->attrs, attrnew);
 }
 
+const char *
+stanza_get_attr(XMPPStanza *stanza, const char *name)
+{
+    if (!stanza->attrs) {
+        return NULL;
+    }
+
+    GList *curr_attr = stanza->attrs;
+    while (curr_attr) {
+        XMPPAttr *attr = curr_attr->data;
+        if (g_strcmp0(attr->name, name) == 0) {
+            return attr->value;
+        }
+
+        curr_attr = g_list_next(curr_attr);
+    }
+
+    return NULL;
+}
+
+const char *
+stanza_get_query_request(XMPPStanza *stanza)
+{
+    if (g_strcmp0(stanza->name, "iq") != 0) {
+        return NULL;
+    }
+
+    const char *type = stanza_get_attr(stanza, "type");
+    if (g_strcmp0(type, "get") != 0) {
+        return NULL;
+    }
+
+    XMPPStanza *query = stanza_get_child_by_name(stanza, "query");
+    if (!query) {
+        return NULL;
+    }
+
+    const char *xmlns = stanza_get_attr(query, "xmlns");
+    if (!xmlns) {
+        return NULL;
+    }
+
+    return xmlns;
+}
+
 static void
 start_element(void *data, const char *element, const char **attributes)
 {

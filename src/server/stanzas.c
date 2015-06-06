@@ -62,51 +62,6 @@ stanza_add(XMPPStanza *stanza)
     pthread_mutex_unlock(&stanzas_lock);
 }
 
-const char *
-stanza_get_attr(XMPPStanza *stanza, const char *name)
-{
-    if (!stanza->attrs) {
-        return NULL;
-    }
-
-    GList *curr_attr = stanza->attrs;
-    while (curr_attr) {
-        XMPPAttr *attr = curr_attr->data;
-        if (g_strcmp0(attr->name, name) == 0) {
-            return attr->value;
-        }
-
-        curr_attr = g_list_next(curr_attr);
-    }
-
-    return NULL;
-}
-
-const char *
-stanza_get_query_request(XMPPStanza *stanza)
-{
-    if (g_strcmp0(stanza->name, "iq") != 0) {
-        return NULL;
-    }
-
-    const char *type = stanza_get_attr(stanza, "type");
-    if (g_strcmp0(type, "get") != 0) {
-        return NULL;
-    }
-
-    XMPPStanza *query = stanza_get_child_by_name(stanza, "query");
-    if (!query) {
-        return NULL;
-    }
-
-    const char *xmlns = stanza_get_attr(query, "xmlns");
-    if (!xmlns) {
-        return NULL;
-    }
-
-    return xmlns;
-}
-
 static int
 _xmpp_attr_equal(XMPPAttr *attr1, XMPPAttr *attr2)
 {
