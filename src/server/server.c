@@ -392,7 +392,6 @@ static void
 _shutdown(void)
 {
     log_println("SHUTDOWN");
-//    stanza_show_all();
 
     if (httpapi_run) {
         httpapi_stop();

@@ -31,50 +31,6 @@
 pthread_mutex_t stanzas_lock;
 static GList *stanzas;
 
-void
-stanza_show(XMPPStanza *stanza)
-{
-    log_println("NAME   : %s", stanza->name);
-
-    if (stanza->content && stanza->content->len > 0) {
-        log_println("CONTENT: %s", stanza->content->str);
-    }
-
-    if (stanza->attrs) {
-        GList *curr_attr = stanza->attrs;
-        while (curr_attr) {
-            XMPPAttr *attr = curr_attr->data;
-            log_println("ATTR   : %s='%s'", attr->name, attr->value);
-
-            curr_attr = g_list_next(curr_attr);
-        }
-    }
-
-    if (stanza->children) {
-        log_println("CHILDREN:");
-        GList *curr_child = stanza->children;
-        while (curr_child) {
-            XMPPStanza *child = curr_child->data;
-            stanza_show(child);
-            curr_child = g_list_next(curr_child);
-        }
-    }
-}
-
-void
-stanza_show_all(void)
-{
-    pthread_mutex_lock(&stanzas_lock);
-    GList *curr = stanzas;
-    while (curr) {
-        XMPPStanza *stanza = curr->data;
-        stanza_show(stanza);
-        log_println("");
-        curr = g_list_next(curr);
-    }
-    pthread_mutex_unlock(&stanzas_lock);
-}
-
 char *
 stanza_to_string(XMPPStanza *stanza)
 {
