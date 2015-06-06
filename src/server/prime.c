@@ -88,7 +88,7 @@ void
 prime_for_query(const char *query, char *stream)
 {
     if (querystubs) {
-        XMPPStanza *stanza = parse_stanza(stream);
+        XMPPStanza *stanza = stanza_parse(stream);
         g_hash_table_insert(querystubs, strdup(query), stanza);
     }
 }

@@ -44,7 +44,7 @@ verify_set_timeout(int seconds)
 int
 verify_any(char *stanza_text)
 {
-    XMPPStanza *stanza = parse_stanza(stanza_text);
+    XMPPStanza *stanza = stanza_parse(stanza_text);
 
     int result = 0;
     if (timeoutsecs <= 0) {
@@ -75,7 +75,7 @@ verify_any(char *stanza_text)
 int
 verify_last(char *stanza_text)
 {
-    XMPPStanza *stanza = parse_stanza(stanza_text);
+    XMPPStanza *stanza = stanza_parse(stanza_text);
 
     int result = 0;
     if (timeoutsecs <= 0) {

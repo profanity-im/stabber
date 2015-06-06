@@ -325,7 +325,7 @@ handle_data(void *data, const char *content, int length)
 }
 
 XMPPStanza *
-parse_stanza(char *stanza_text)
+stanza_parse(char *stanza_text)
 {
     ParseState *state = malloc(sizeof(ParseState));
     state->depth = 0;
