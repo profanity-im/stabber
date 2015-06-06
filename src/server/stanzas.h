@@ -32,7 +32,6 @@ const char* stanza_get_id(XMPPStanza *stanza);
 void stanza_set_id(XMPPStanza *stanza, const char *id);
 const char *stanza_get_query_request(XMPPStanza *stanza);
 
-XMPPStanza* stanza_get_child_by_ns(XMPPStanza *stanza, char *ns);
 XMPPStanza* stanza_get_child_by_name(XMPPStanza *stanza, char *name);
 
 int stanza_verify_any(XMPPStanza *stanza);

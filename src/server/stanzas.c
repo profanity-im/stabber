@@ -63,39 +63,6 @@ stanza_add(XMPPStanza *stanza)
 }
 
 XMPPStanza*
-stanza_get_child_by_ns(XMPPStanza *stanza, char *ns)
-{
-    if (!stanza) {
-        return NULL;
-    }
-
-    if (!stanza->children) {
-        return NULL;
-    }
-
-    GList *curr_child = stanza->children;
-    while (curr_child) {
-        XMPPStanza *child = curr_child->data;
-        if (!child->attrs) {
-            return NULL;
-        }
-        GList *curr_attr = child->attrs;
-        while (curr_attr) {
-            XMPPAttr *attr = curr_attr->data;
-            if ((g_strcmp0(attr->name, "xmlns") == 0) && (g_strcmp0(attr->value, ns) == 0)) {
-                return child;
-            }
-
-            curr_attr = g_list_next(curr_attr);
-        }
-
-        curr_child = g_list_next(curr_child);
-    }
-
-    return NULL;
-}
-
-XMPPStanza*
 stanza_get_child_by_name(XMPPStanza *stanza, char *name)
 {
     if (!stanza) {

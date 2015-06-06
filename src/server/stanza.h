@@ -42,5 +42,6 @@ XMPPStanza* stanza_new(const char *name, const char **attributes);
 XMPPStanza* parse_stanza(char *stanza_text);
 char* stanza_to_string(XMPPStanza *stanza);
 void stanza_add_child(XMPPStanza *parent, XMPPStanza *child);
+XMPPStanza* stanza_get_child_by_ns(XMPPStanza *stanza, char *ns);
 
 #endif
