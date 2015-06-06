@@ -323,7 +323,7 @@ server_run(int port, int httpport)
     server_addr.sin_port = htons(port);
 
     int reuse = 1;
-    int ret = setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &reuse, sizeof(reuse));
+    int ret = setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
     if (ret == -1) {
         log_println("Set socket options failed: %s", strerror(errno));
         _shutdown();
