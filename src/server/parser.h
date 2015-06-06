@@ -23,7 +23,7 @@
 #ifndef __H_PARSER
 #define __H_PARSER
 
-#include "server/stanza.h"
+#include "server/stanzas.h"
 
 XMPPStanza* parse_stanza(char *stanza_text);
 

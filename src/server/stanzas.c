@@ -1,5 +1,5 @@
 /*
- * stanza.c
+ * stanzas.c
  *
  * Copyright (C) 2015 James Booth <boothj5@gmail.com>
  *
@@ -25,7 +25,7 @@
 #include <string.h>
 #include <glib.h>
 
-#include "server/stanza.h"
+#include "server/stanzas.h"
 #include "server/log.h"
 
 pthread_mutex_t stanzas_lock;

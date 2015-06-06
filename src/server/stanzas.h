@@ -1,5 +1,5 @@
 /*
- * stanza.h
+ * stanzas.h
  *
  * Copyright (C) 2015 James Booth <boothj5@gmail.com>
  *
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef __H_STANZA
-#define __H_STANZA
+#ifndef __H_STANZAS
+#define __H_STANZAS
 
 #include <glib.h>
 

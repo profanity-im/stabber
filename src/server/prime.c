@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-#include "server/stanza.h"
+#include "server/stanzas.h"
 #include "server/parser.h"
 
 static char *required_passwd = NULL;

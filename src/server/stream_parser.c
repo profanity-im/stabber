@@ -26,7 +26,7 @@
 #include <glib.h>
 
 #include "server/stream_parser.h"
-#include "server/stanza.h"
+#include "server/stanzas.h"
 #include "server/log.h"
 
 static int depth = 0;
