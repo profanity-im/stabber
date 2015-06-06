@@ -144,8 +144,8 @@ read_stream(void)
             log_println("RECV: </stream:stream>");
             log_println("--> Stream end callback fired");
             write_stream(STREAM_END);
-            _shutdown();
-            return 0;
+            log_println("STREAM END");
+            kill_recv = TRUE;
         }
         memset(buf, 0, sizeof(buf));
     }
@@ -380,8 +380,11 @@ server_send(char *stream)
 void
 server_stop(void)
 {
-    kill_recv = TRUE;
-    pthread_join(server_thread, NULL);
+    if (!kill_recv) {
+        log_println("SERVER STOP");
+        kill_recv = TRUE;
+        pthread_join(server_thread, NULL);
+    }
 }
 
 static void
