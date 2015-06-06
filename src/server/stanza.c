@@ -24,6 +24,7 @@
 #include <expat.h>
 #include <glib.h>
 
+#include "server/stanza.h"
 #include "server/stanzas.h"
 
 typedef struct parse_state_t {

@@ -31,6 +31,7 @@
 #include "server/xmppclient.h"
 #include "server/stream_parser.h"
 #include "server/prime.h"
+#include "server/stanza.h"
 #include "server/stanzas.h"
 #include "server/verify.h"
 #include "server/server.h"

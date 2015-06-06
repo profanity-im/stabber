@@ -25,7 +25,7 @@
 #include <string.h>
 #include <glib.h>
 
-#include "server/stanzas.h"
+#include "server/stanza.h"
 #include "server/log.h"
 
 pthread_mutex_t stanzas_lock;

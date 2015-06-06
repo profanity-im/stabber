@@ -25,8 +25,8 @@
 
 #include <string.h>
 
-#include "server/stanzas.h"
 #include "server/stanza.h"
+#include "server/stanzas.h"
 
 static char *required_passwd = NULL;
 static GHashTable *idstubs = NULL;

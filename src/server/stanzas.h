@@ -25,18 +25,7 @@
 
 #include <glib.h>
 
-typedef struct xmpp_attr_t {
-    char *name;
-    char *value;
-} XMPPAttr;
-
-typedef struct xmpp_stanza_t {
-    char *name;
-    GList *attrs;
-    GList *children;
-    GString *content;
-    struct xmpp_stanza_t *parent;
-} XMPPStanza;
+#include "server/stanza.h"
 
 XMPPStanza* stanza_new(const char *name, const char **attributes);
 void stanza_show(XMPPStanza *stanza);

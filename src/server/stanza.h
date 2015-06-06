@@ -23,7 +23,20 @@
 #ifndef __H_STANZA
 #define __H_STANZA
 
-#include "server/stanzas.h"
+#include <glib.h>
+
+typedef struct xmpp_attr_t {
+    char *name;
+    char *value;
+} XMPPAttr;
+
+typedef struct xmpp_stanza_t {
+    char *name;
+    GList *attrs;
+    GList *children;
+    GString *content;
+    struct xmpp_stanza_t *parent;
+} XMPPStanza;
 
 XMPPStanza* parse_stanza(char *stanza_text);
 

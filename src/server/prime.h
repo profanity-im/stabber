@@ -23,7 +23,7 @@
 #ifndef __H_PRIME
 #define __H_PRIME
 
-#include "server/stanzas.h"
+#include "server/stanza.h"
 
 void prime_init(void);
 void prime_free_all(void);

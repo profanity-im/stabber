@@ -23,8 +23,7 @@
 #ifndef __H_STREAM_PARSER
 #define __H_STREAM_PARSER
 
-#include "server/stanzas.h"
-#include "server/xmppclient.h"
+#include "server/stanza.h"
 
 typedef void (*stream_start_func)(void);
 typedef void (*auth_func)(XMPPStanza *stanza);
