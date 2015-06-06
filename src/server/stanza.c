@@ -1,5 +1,5 @@
 /*
- * parser.c
+ * stanza.c
  *
  * Copyright (C) 2015 James Booth <boothj5@gmail.com>
  *

@@ -1,5 +1,5 @@
 /*
- * parser.h
+ * stanza.h
  *
  * Copyright (C) 2015 James Booth <boothj5@gmail.com>
  *
@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef __H_PARSER
-#define __H_PARSER
+#ifndef __H_STANZA
+#define __H_STANZA
 
 #include "server/stanzas.h"
 

@@ -31,7 +31,6 @@ m4/
 runstabber
 src/.deps/
 src/.dirstamp
-src/server/parser.lo
 src/server/server.lo
 src/server/xmppclient.lo
 src/client/.dirstamp
@@ -44,5 +43,6 @@ src/server/verify.lo
 src/server/httpapi.lo
 src/server/stream_parser.lo
 src/server/stanzas.lo
+src/server/stanza.lo
 
 stabbertest

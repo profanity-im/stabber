@@ -5,7 +5,7 @@ sources = \
 	src/server/httpapi.c src/server/httpapi.h \
 	src/server/xmppclient.c src/server/xmppclient.h \
 	src/server/stream_parser.c src/server/stream_parser.h \
-	src/server/parser.c src/server/parser.h \
+	src/server/stanza.c src/server/stanza.h \
     src/server/stanzas.c src/server/stanzas.h \
     src/server/log.c src/server/log.h \
     src/server/prime.c src/server/prime.h \
