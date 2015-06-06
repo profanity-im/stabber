@@ -53,6 +53,58 @@ stanza_new(const char *name, const char **attributes)
     return stanza;
 }
 
+char *
+stanza_to_string(XMPPStanza *stanza)
+{
+    GString *stanza_str = g_string_new("<");
+
+    g_string_append(stanza_str, stanza->name);
+
+    if (stanza->attrs) {
+        GList *curr = stanza->attrs;
+        while (curr) {
+            XMPPAttr *attr = curr->data;
+            g_string_append(stanza_str, " ");
+            g_string_append(stanza_str, attr->name);
+            g_string_append(stanza_str, "=\"");
+            g_string_append(stanza_str, attr->value);
+            g_string_append(stanza_str, "\"");
+
+            curr = g_list_next(curr);
+        }
+    }
+
+    if (stanza->content) {
+        g_string_append(stanza_str, ">");
+        g_string_append(stanza_str, stanza->content->str);
+        g_string_append(stanza_str, "</");
+        g_string_append(stanza_str, stanza->name);
+        g_string_append(stanza_str, ">");
+    } else if (stanza->children) {
+        g_string_append(stanza_str, ">");
+
+        GList *curr = stanza->children;
+        while (curr) {
+            XMPPStanza *child = curr->data;
+            char *child_str = stanza_to_string(child);
+            g_string_append(stanza_str, child_str);
+            free(child_str);
+            curr = g_list_next(curr);
+        }
+
+        g_string_append(stanza_str, "</");
+        g_string_append(stanza_str, stanza->name);
+        g_string_append(stanza_str, ">");
+    } else {
+        g_string_append(stanza_str, "/>");
+    }
+
+    char *result = stanza_str->str;
+    g_string_free(stanza_str, FALSE);
+
+    return result;
+}
+
 static void
 start_element(void *data, const char *element, const char **attributes)
 {

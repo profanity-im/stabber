@@ -40,5 +40,6 @@ typedef struct xmpp_stanza_t {
 
 XMPPStanza* stanza_new(const char *name, const char **attributes);
 XMPPStanza* parse_stanza(char *stanza_text);
+char* stanza_to_string(XMPPStanza *stanza);
 
 #endif

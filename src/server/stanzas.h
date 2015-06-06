@@ -44,6 +44,4 @@ int stanzas_contains_id(char *id);
 void stanza_free(XMPPStanza *stanza);
 void stanza_free_all(void);
 
-char* stanza_to_string(XMPPStanza *stanza);
-
 #endif
