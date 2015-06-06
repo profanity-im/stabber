@@ -123,9 +123,10 @@ read_stream(void)
 
         // error
         if (read_size == -1) {
-            // read timeout, try again
+            // got nothing, sleep and try again
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 errno = 0;
+                usleep(1000 * 5);
                 continue;
 
             // real error
@@ -246,7 +247,7 @@ server_wait_for(char *id)
             log_println("WAIT complete for id: %s", id);
             return;
         }
-        usleep(1000 * 50);
+        usleep(1000 * 5);
     }
 }
 
@@ -262,16 +263,7 @@ _start_server_cb(void* userdata)
         return NULL;
     }
 
-    // listen socket read timeout
-    struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 1000 * 10;
-    errno = 0;
-    res = setsockopt(listen_socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
-    if (res < 0) {
-        log_println("Error setting listen socket options: %s", strerror(errno));
-        return NULL;
-    }
+    log_println("Waiting for incoming connection...");
 
     // wait for connection
     int c = sizeof(struct sockaddr_in);
@@ -283,20 +275,13 @@ _start_server_cb(void* userdata)
             return NULL;
         }
         errno = 0;
+        usleep(1000 * 5);
     }
 
     // client socket non blocking
     res = fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0) | O_NONBLOCK);
     if (res == -1) {
         log_println("Error setting nonblocking on client socket: %s", strerror(errno));
-        return NULL;
-    }
-
-    // client socket read timeout
-    errno = 0;
-    res = setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
-    if (res < 0) {
-        log_println("Error setting client socket options: %s", strerror(errno));
         return NULL;
     }
 
@@ -337,7 +322,7 @@ server_run(int port, int httpport)
     server_addr.sin_port = htons(port);
 
     int reuse = 1;
-    int ret = setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+    int ret = setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &reuse, sizeof(reuse));
     if (ret == -1) {
         log_println("Set socket options failed: %s", strerror(errno));
         _shutdown();
@@ -361,8 +346,6 @@ server_run(int port, int httpport)
         _shutdown();
         return -1;
     }
-
-    log_println("Waiting for incoming connection...");
 
     prime_init();
 
