@@ -28,7 +28,6 @@
 #include "server/stanza.h"
 
 void stanza_add(XMPPStanza *stanza);
-void stanza_set_id(XMPPStanza *stanza, const char *id);
 const char *stanza_get_query_request(XMPPStanza *stanza);
 
 int stanza_verify_any(XMPPStanza *stanza);

@@ -45,5 +45,6 @@ void stanza_add_child(XMPPStanza *parent, XMPPStanza *child);
 XMPPStanza* stanza_get_child_by_ns(XMPPStanza *stanza, char *ns);
 XMPPStanza* stanza_get_child_by_name(XMPPStanza *stanza, char *name);
 const char* stanza_get_id(XMPPStanza *stanza);
+void stanza_set_id(XMPPStanza *stanza, const char *id);
 
 #endif
