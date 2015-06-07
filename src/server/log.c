@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/prctl.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -126,7 +127,9 @@ log_println(const char * const msg, ...)
     GTimeZone *tz = g_time_zone_new_local();
     GDateTime *dt = g_date_time_new_now(tz);
     gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
-    fprintf(logp, "%s: %s\n", date_fmt, fmt_msg->str);
+    char thr_name[16];
+    prctl(PR_GET_NAME, thr_name);
+    fprintf(logp, "%s: [%s] %s\n", date_fmt, thr_name, fmt_msg->str);
     g_date_time_unref(dt);
     g_time_zone_unref(tz);
     fflush(logp);

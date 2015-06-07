@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/prctl.h>
 
 #include "server/xmppclient.h"
 #include "server/stream_parser.h"
@@ -255,6 +256,8 @@ server_wait_for(char *id)
 void*
 _start_server_cb(void* userdata)
 {
+    prctl(PR_SET_NAME, "stbbr");
+
     struct sockaddr_in client_addr;
 
     // listen socket non blocking
