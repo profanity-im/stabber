@@ -64,9 +64,9 @@ verify_any(char *stanza_text)
     }
 
     if (result) {
-        log_println("VERIFY SUCCESS: %s", stanza_text);
+        log_println(STBBR_LOGINFO, "VERIFY SUCCESS: %s", stanza_text);
     } else {
-        log_println("VERIFY FAIL: %s", stanza_text);
+        log_println(STBBR_LOGINFO, "VERIFY FAIL: %s", stanza_text);
     }
 
     return result;
@@ -95,9 +95,9 @@ verify_last(char *stanza_text)
     }
 
     if (result) {
-        log_println("VERIFY LAST SUCCESS: %s", stanza_text);
+        log_println(STBBR_LOGINFO, "VERIFY LAST SUCCESS: %s", stanza_text);
     } else {
-        log_println("VERIFY LAST FAIL: %s", stanza_text);
+        log_println(STBBR_LOGINFO, "VERIFY LAST FAIL: %s", stanza_text);
     }
 
     return result;

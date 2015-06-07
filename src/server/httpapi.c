@@ -123,7 +123,6 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
         switch (con_info->stbbr_op) {
 
         case STBBR_OP_SEND:
-            log_println("STBBR_OP_SEND");
             server_send(con_info->body->str);
             return send_response(conn, NULL, MHD_HTTP_OK);
 
@@ -181,7 +180,7 @@ httpapi_start(int port)
         return 0;
     }
 
-    log_println("HTTP daemon started on port: %d", port);
+    log_println(STBBR_LOGINFO, "HTTP daemon started on port: %d", port);
 
     return 1;
 }
@@ -190,5 +189,5 @@ void
 httpapi_stop(void)
 {
     MHD_stop_daemon(httpdaemmon);
-    log_println("HTTP daemon stopped.");
+    log_println(STBBR_LOGINFO, "HTTP daemon stopped.");
 }

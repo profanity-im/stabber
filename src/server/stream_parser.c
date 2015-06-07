@@ -46,7 +46,7 @@ static void
 start_element(void *data, const char *element, const char **attributes)
 {
     if (g_strcmp0(element, "stream:stream") == 0) {
-        log_println("RECV: %s", curr_string->str);
+        log_println(STBBR_LOGINFO, "RECV: %s", curr_string->str);
         stream_start_cb();
         do_reset = 1;
         return;
@@ -74,7 +74,7 @@ end_element(void *data, const char *element)
         stanza_add_child(curr_stanza->parent, curr_stanza);
         curr_stanza = curr_stanza->parent;
     } else {
-        log_println("RECV: %s", curr_string->str);
+        log_println(STBBR_LOGINFO, "RECV: %s", curr_string->str);
         stanzas_add(curr_stanza);
         if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
             auth_cb(curr_stanza);

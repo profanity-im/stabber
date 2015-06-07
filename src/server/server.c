@@ -76,7 +76,7 @@ write_stream(const char * const stream)
 
             // real error
             } else {
-                log_println("Error sending on connection: %s", strerror(errno));
+                log_println(STBBR_LOGERROR, "Error sending on connection: %s", strerror(errno));
                 return;
             }
         }
@@ -85,7 +85,7 @@ write_stream(const char * const stream)
         marker += sent;
     }
 
-    log_println("SENT: %s", stream);
+    log_println(STBBR_LOGINFO, "SENT: %s", stream);
 }
 
 int
@@ -118,7 +118,7 @@ read_stream(void)
 
         // client disconnect
         if (read_size == 0) {
-            log_println("%s:%d - Client disconnected.", client->ip, client->port);
+            log_println(STBBR_LOGINFO, "%s:%d - Client disconnected.", client->ip, client->port);
             g_string_free(stream, TRUE);
             return -1;
         }
@@ -133,7 +133,7 @@ read_stream(void)
 
             // real error
             } else {
-                log_println("Error receiving on connection: %s", strerror(errno));
+                log_println(STBBR_LOGERROR, "Error receiving on connection: %s", strerror(errno));
                 g_string_free(stream, TRUE);
                 return -1;
             }
@@ -143,10 +143,9 @@ read_stream(void)
         parser_feed(buf, 1);
         g_string_append_len(stream, buf, read_size);
         if (g_str_has_suffix(stream->str, STREAM_END)) {
-            log_println("RECV: </stream:stream>");
-            log_println("--> Stream end callback fired");
+            log_println(STBBR_LOGINFO, "RECV: </stream:stream>");
+            log_println(STBBR_LOGINFO, "--> Stream end callback fired");
             write_stream(STREAM_END);
-            log_println("STREAM END");
             kill_recv = TRUE;
         }
         memset(buf, 0, sizeof(buf));
@@ -158,7 +157,7 @@ read_stream(void)
 void
 stream_start_callback(void)
 {
-    log_println("--> Stream start callback fired");
+    log_println(STBBR_LOGINFO, "--> Stream start callback fired");
 
     write_stream(XML_START);
     write_stream(STREAM_RESP);
@@ -168,7 +167,7 @@ stream_start_callback(void)
 void
 auth_callback(XMPPStanza *stanza)
 {
-    log_println("--> Auth callback fired");
+    log_println(STBBR_LOGINFO, "--> Auth callback fired");
 
     const char *id = stanza_get_id(stanza);
     XMPPStanza *query = stanza_get_child_by_ns(stanza, "jabber:iq:auth");
@@ -221,7 +220,7 @@ id_callback(const char *id)
 {
     char *stream = prime_get_for_id(id);
     if (stream) {
-        log_println("--> ID callback fired for '%s'", id);
+        log_println(STBBR_LOGINFO, "--> ID callback fired for '%s'", id);
         write_stream(stream);
     }
 }
@@ -231,7 +230,7 @@ query_callback(const char *query, const char *id)
 {
     XMPPStanza *stanza = prime_get_for_query(query);
     if (stanza) {
-        log_println("--> QUERY callback fired for '%s'", query);
+        log_println(STBBR_LOGINFO, "--> QUERY callback fired for '%s'", query);
         stanza_set_id(stanza, id);
         char *stream = stanza_to_string(stanza);
         write_stream(stream);
@@ -242,11 +241,11 @@ query_callback(const char *query, const char *id)
 void
 server_wait_for(char *id)
 {
-    log_println("WAIT for stanza with id: %s", id);
+    log_println(STBBR_LOGINFO, "WAIT for stanza with id: %s", id);
     while (TRUE) {
         int res = stanzas_contains_id(id);
         if (res) {
-            log_println("WAIT complete for id: %s", id);
+            log_println(STBBR_LOGINFO, "WAIT complete for id: %s", id);
             return;
         }
         usleep(1000 * 5);
@@ -263,11 +262,11 @@ _start_server_cb(void* userdata)
     // listen socket non blocking
     int res = fcntl(listen_socket, F_SETFL, fcntl(listen_socket, F_GETFL, 0) | O_NONBLOCK);
     if (res == -1) {
-        log_println("Error setting nonblocking on listen socket: %s", strerror(errno));
+        log_println(STBBR_LOGERROR, "Error setting nonblocking on listen socket: %s", strerror(errno));
         return NULL;
     }
 
-    log_println("Waiting for incoming connection...");
+    log_println(STBBR_LOGINFO, "Waiting for incoming connection...");
 
     // wait for connection
     int c = sizeof(struct sockaddr_in);
@@ -275,7 +274,7 @@ _start_server_cb(void* userdata)
     errno = 0;
     while ((client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c)) == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            log_println("Accept failed: %s", strerror(errno));
+            log_println(STBBR_LOGERROR, "Accept failed: %s", strerror(errno));
             return NULL;
         }
         errno = 0;
@@ -285,7 +284,7 @@ _start_server_cb(void* userdata)
     // client socket non blocking
     res = fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0) | O_NONBLOCK);
     if (res == -1) {
-        log_println("Error setting nonblocking on client socket: %s", strerror(errno));
+        log_println(STBBR_LOGERROR, "Error setting nonblocking on client socket: %s", strerror(errno));
         return NULL;
     }
 
@@ -309,13 +308,13 @@ server_run(stbbr_log_t loglevel, int port, int httpport)
     verify_set_timeout(10);
 
     log_init(loglevel);
-    log_println("Starting on port: %d...", port);
+    log_println(STBBR_LOGINFO, "Starting on port: %d...", port);
 
     // create listen socket
     errno = 0;
     listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (listen_socket == -1) {
-        log_println("Could not create socket: %s", strerror(errno));
+        log_println(STBBR_LOGERROR, "Could not create socket: %s", strerror(errno));
         _shutdown();
         return -1;
     }
@@ -328,7 +327,7 @@ server_run(stbbr_log_t loglevel, int port, int httpport)
     int reuse = 1;
     int ret = setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
     if (ret == -1) {
-        log_println("Set socket options failed: %s", strerror(errno));
+        log_println(STBBR_LOGERROR, "Set socket options failed: %s", strerror(errno));
         _shutdown();
         return -1;
     }
@@ -337,7 +336,7 @@ server_run(stbbr_log_t loglevel, int port, int httpport)
     errno = 0;
     ret = bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (ret == -1) {
-        log_println("Bind failed: %s", strerror(errno));
+        log_println(STBBR_LOGERROR, "Bind failed: %s", strerror(errno));
         _shutdown();
         return -1;
     }
@@ -346,7 +345,7 @@ server_run(stbbr_log_t loglevel, int port, int httpport)
     errno = 0;
     ret = listen(listen_socket, 5);
     if (ret == -1) {
-        log_println("Listen failed: %s", strerror(errno));
+        log_println(STBBR_LOGERROR, "Listen failed: %s", strerror(errno));
         _shutdown();
         return -1;
     }
@@ -385,7 +384,7 @@ void
 server_stop(void)
 {
     if (!kill_recv) {
-        log_println("SERVER STOP");
+        log_println(STBBR_LOGINFO, "SERVER STOP");
         kill_recv = TRUE;
         pthread_join(server_thread, NULL);
     }
@@ -394,7 +393,7 @@ server_stop(void)
 static void
 _shutdown(void)
 {
-    log_println("SHUTDOWN");
+    log_println(STBBR_LOGINFO, "SHUTDOWN");
 
     if (httpapi_run) {
         httpapi_stop();
@@ -417,7 +416,7 @@ _shutdown(void)
     send_queue = NULL;
     pthread_mutex_unlock(&send_queue_lock);
 
-    log_println("");
-    log_println("");
+    log_println(STBBR_LOGINFO, "");
+    log_println(STBBR_LOGINFO, "");
     log_close();
 }

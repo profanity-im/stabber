@@ -121,25 +121,40 @@ log_init(stbbr_log_t loglevel)
     free(log_file);
 }
 
-void
-log_println(const char * const msg, ...)
+static char*
+_levelstr(stbbr_log_t loglevel)
 {
-    va_list arg;
-    va_start(arg, msg);
-    GString *fmt_msg = g_string_new(NULL);
-    g_string_vprintf(fmt_msg, msg, arg);
-    GTimeZone *tz = g_time_zone_new_local();
-    GDateTime *dt = g_date_time_new_now(tz);
-    gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
-    char thr_name[16];
-    prctl(PR_GET_NAME, thr_name);
-    fprintf(logp, "%s: [%s] %s\n", date_fmt, thr_name, fmt_msg->str);
-    g_date_time_unref(dt);
-    g_time_zone_unref(tz);
-    fflush(logp);
-    g_free(date_fmt);
-    g_string_free(fmt_msg, TRUE);
-    va_end(arg);
+    switch (loglevel) {
+        case STBBR_LOGERROR: return "ERROR";
+        case STBBR_LOGWARN:  return "WARN";
+        case STBBR_LOGINFO:  return "INFO";
+        case STBBR_LOGDEBUG: return "DEBUG";
+        default:             return "";
+    }
+}
+
+void
+log_println(stbbr_log_t loglevel, const char * const msg, ...)
+{
+    if (loglevel >= minlevel) {
+        va_list arg;
+        va_start(arg, msg);
+        GString *fmt_msg = g_string_new(NULL);
+        g_string_vprintf(fmt_msg, msg, arg);
+        GTimeZone *tz = g_time_zone_new_local();
+        GDateTime *dt = g_date_time_new_now(tz);
+        gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
+        char thr_name[16];
+        prctl(PR_GET_NAME, thr_name);
+        char *levelstr = _levelstr(loglevel);
+        fprintf(logp, "%s: [%s] [%s] %s\n", date_fmt, thr_name, levelstr, fmt_msg->str);
+        g_date_time_unref(dt);
+        g_time_zone_unref(tz);
+        fflush(logp);
+        g_free(date_fmt);
+        g_string_free(fmt_msg, TRUE);
+        va_end(arg);
+    }
 }
 
 void
