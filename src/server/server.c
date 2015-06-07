@@ -298,7 +298,7 @@ _start_server_cb(void* userdata)
 }
 
 int
-server_run(int port, int httpport)
+server_run(stbbr_log_t loglevel, int port, int httpport)
 {
     pthread_mutex_lock(&send_queue_lock);
     send_queue = NULL;
@@ -308,7 +308,7 @@ server_run(int port, int httpport)
     client = NULL;
     verify_set_timeout(10);
 
-    log_init();
+    log_init(loglevel);
     log_println("Starting on port: %d...", port);
 
     // create listen socket

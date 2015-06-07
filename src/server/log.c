@@ -29,7 +29,10 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#include "stabber.h"
+
 static FILE *logp;
+static stbbr_log_t minlevel;
 
 gchar *
 _xdg_get_data_home(void)
@@ -102,8 +105,9 @@ _mkdir_recursive(const char *dir)
 }
 
 void
-log_init(void)
+log_init(stbbr_log_t loglevel)
 {
+    minlevel = loglevel;
     gchar *xdg_data = _xdg_get_data_home();
     GString *log_dir = g_string_new(xdg_data);
     g_string_append(log_dir, "/stabber/logs");

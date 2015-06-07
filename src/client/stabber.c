@@ -28,14 +28,12 @@
 #include "server/prime.h"
 #include "server/verify.h"
 
-typedef struct server_args_t {
-    int port;
-} StabberArgs;
+#include "stabber.h"
 
 int
-stbbr_start(int port, int httpport)
+stbbr_start(stbbr_log_t loglevel, int port, int httpport)
 {
-    return server_run(port, httpport);
+    return server_run(loglevel, port, httpport);
 }
 
 void

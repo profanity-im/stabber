@@ -2,9 +2,11 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+#include "stabber.h"
+
 int main(void)
 {
-    stbbr_start(5230, 5231);
+    stbbr_start(STBBR_LOGDEBUG, 5230, 5231);
 
     stbbr_auth_passwd("password");
 

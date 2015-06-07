@@ -23,7 +23,9 @@
 #ifndef __H_LOG
 #define __H_LOG
 
-void log_init(void);
+#include "stabber.h"
+
+void log_init(stbbr_log_t loglevel);
 void log_close(void);
 void log_println(const char * const msg, ...);
 

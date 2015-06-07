@@ -23,13 +23,20 @@
 #ifndef __H_STABBER
 #define __H_STABBER
 
-int stbbr_start(int port, int httpport);
+typedef enum {
+    STBBR_LOGDEBUG,
+    STBBR_LOGINFO,
+    STBBR_LOGWARN,
+    STBBR_LOGERROR
+} stbbr_log_t;
+
+int stbbr_start(stbbr_log_t loglevel, int port, int httpport);
 void stbbr_stop(void);
 
 void stbbr_set_timeout(int seconds);
 
 int stbbr_auth_passwd(char *password);
-void stbbr_for_id(char *id, char *stream);
+int stbbr_for_id(char *id, char *stream);
 int stbbr_for_query(char *query, char *stream);
 
 void stbbr_wait_for(char *id);

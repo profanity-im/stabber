@@ -23,7 +23,9 @@
 #ifndef __H_SERVER
 #define __H_SERVER
 
-int server_run(int port, int httpport);
+#include "stabber.h"
+
+int server_run(stbbr_log_t loglevel, int port, int httpport);
 void server_stop(void);
 
 void server_wait_for(char *id);

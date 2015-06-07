@@ -90,7 +90,7 @@ send_response(struct MHD_Connection* conn, const char* body, int status_code)
 int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const char* method,
     const char* version, const char* data, size_t* size, void** con_cls)
 {
-    prctl(PR_SET_NAME, "stbbrhttp");
+    prctl(PR_SET_NAME, "http");
 
     if (*con_cls == NULL) {
         ConnectionInfo *con_info = create_connection_info();
@@ -123,6 +123,7 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
         switch (con_info->stbbr_op) {
 
         case STBBR_OP_SEND:
+            log_println("STBBR_OP_SEND");
             server_send(con_info->body->str);
             return send_response(conn, NULL, MHD_HTTP_OK);
 

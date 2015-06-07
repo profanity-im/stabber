@@ -26,6 +26,8 @@
 #include <stabber.h>
 #include <pthread.h>
 
+#include "stabber.h"
+
 int
 main(int argc , char *argv[])
 {
@@ -58,7 +60,7 @@ main(int argc , char *argv[])
         return 1;
     }
 
-    stbbr_start(port, httpport);
+    stbbr_start(STBBR_LOGINFO, port, httpport);
 
     pthread_exit(0);
 }
