@@ -241,7 +241,7 @@ query_callback(const char *query, const char *id)
 void
 server_wait_for(char *id)
 {
-    log_println(STBBR_LOGINFO, "WAIT for stanza with id: %s", id);
+    log_println(STBBR_LOGINFO, "Received wait for stanza with id: %s", id);
     while (TRUE) {
         int res = stanzas_contains_id(id);
         if (res) {
@@ -376,6 +376,8 @@ server_run(stbbr_log_t loglevel, int port, int httpport)
 void
 server_send(char *stream)
 {
+    log_println(STBBR_LOGDEBUG, "Received send: %s", stream);
+
     pthread_mutex_lock(&send_queue_lock);
     send_queue = g_list_append(send_queue, strdup(stream));
     pthread_mutex_unlock(&send_queue_lock);

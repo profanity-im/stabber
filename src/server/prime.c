@@ -27,6 +27,7 @@
 
 #include "server/stanza.h"
 #include "server/stanzas.h"
+#include "server/log.h"
 
 static char *required_passwd = NULL;
 static GHashTable *idstubs = NULL;
@@ -60,6 +61,8 @@ prime_free_all(void)
 void
 prime_required_passwd(char *password)
 {
+    log_println(STBBR_LOGDEBUG, "Received auth password: %s", password);
+
     free(required_passwd);
     required_passwd = strdup(password);
 }
@@ -74,6 +77,8 @@ void
 prime_for_id(const char *id, char *stream)
 {
     if (idstubs) {
+        log_println(STBBR_LOGDEBUG, "Received stub for id: %s, stanza: %s", id, stream);
+
         g_hash_table_insert(idstubs, strdup(id), strdup(stream));
     }
 }
@@ -88,6 +93,8 @@ void
 prime_for_query(const char *query, char *stream)
 {
     if (querystubs) {
+        log_println(STBBR_LOGDEBUG, "Received stub for query: %s, stanza: %s", query, stream);
+
         XMPPStanza *stanza = stanza_parse(stream);
         g_hash_table_insert(querystubs, strdup(query), stanza);
     }

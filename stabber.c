@@ -33,11 +33,14 @@ main(int argc , char *argv[])
 {
     int port = 0;
     int httpport = 0;
+    char *loglevelarg = "INFO";
+    stbbr_log_t loglevel = STBBR_LOGINFO;
 
     GOptionEntry entries[] =
     {
         { "port", 'p', 0, G_OPTION_ARG_INT, &port, "Listen port", NULL },
         { "http", 'h', 0, G_OPTION_ARG_INT, &httpport, "HTTP Listen port", NULL },
+        { "log",'l', 0, G_OPTION_ARG_STRING, &loglevelarg, "Set logging levels, DEBUG, INFO (default), WARN, ERROR", "LEVEL" },
         { NULL }
     };
 
@@ -60,7 +63,20 @@ main(int argc , char *argv[])
         return 1;
     }
 
-    stbbr_start(STBBR_LOGINFO, port, httpport);
+    if (g_strcmp0(loglevelarg, "INFO") == 0) {
+        loglevel = STBBR_LOGINFO;
+    } else if (g_strcmp0(loglevelarg, "DEBUG") == 0) {
+        loglevel = STBBR_LOGDEBUG;
+    } else if (g_strcmp0(loglevelarg, "WARN") == 0) {
+        loglevel = STBBR_LOGWARN;
+    } else if (g_strcmp0(loglevelarg, "ERROR") == 0) {
+        loglevel = STBBR_LOGERROR;
+    } else {
+        printf("Invalid log level supplied, must be one of DEBUG, INFO, WARN, ERROR.\n");
+        return 1;
+    }
+
+    stbbr_start(loglevel, port, httpport);
 
     pthread_exit(0);
 }

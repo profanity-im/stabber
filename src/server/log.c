@@ -131,10 +131,10 @@ static char*
 _levelstr(stbbr_log_t loglevel)
 {
     switch (loglevel) {
-        case STBBR_LOGERROR: return "ERROR";
-        case STBBR_LOGWARN:  return "WARN";
-        case STBBR_LOGINFO:  return "INFO";
-        case STBBR_LOGDEBUG: return "DEBUG";
+        case STBBR_LOGERROR: return "ERR";
+        case STBBR_LOGWARN:  return "WRN";
+        case STBBR_LOGINFO:  return "INF";
+        case STBBR_LOGDEBUG: return "DBG";
         default:             return "";
     }
 }

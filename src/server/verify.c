@@ -34,6 +34,8 @@ static int timeoutsecs = 0;
 void
 verify_set_timeout(int seconds)
 {
+    log_println(STBBR_LOGDEBUG, "Setting timeout: %d seconds", seconds);
+
     if (seconds <= 0) {
         timeoutsecs = 0;
     } else {
