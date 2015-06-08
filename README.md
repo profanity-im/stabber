@@ -36,9 +36,11 @@ To start Stabber:
 ```c
 stbbr_start(stbbr_log_t loglevel, int port, int httpport);
 ```
-`loglevel` must be one of `STBBR_LOGDEBUG`, `STBBR_LOGINFO`, `STBBR_LOGWARN`, `STBBR_LOGERROR`.
-`port` The port on which to run the stubbed XMPP server.
-`httpport` The port on which to run the HTTP API, a value of `0` will not run the HTTP Daemon.
+`loglevel` - Must be one of `STBBR_LOGDEBUG`, `STBBR_LOGINFO`, `STBBR_LOGWARN`, `STBBR_LOGERROR`.
+
+`port` - The port on which to run the stubbed XMPP server.
+
+`httpport` - The port on which to run the HTTP API, a value of `0` will not run the HTTP daemon.
 
 ### Stopping
 To stop Stabber:
