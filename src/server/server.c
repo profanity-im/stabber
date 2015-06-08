@@ -255,7 +255,7 @@ server_wait_for(char *id)
 void*
 _start_server_cb(void* userdata)
 {
-    prctl(PR_SET_NAME, "stbbr");
+    prctl(PR_SET_NAME, "stbr");
 
     struct sockaddr_in client_addr;
 
@@ -299,6 +299,7 @@ _start_server_cb(void* userdata)
 int
 server_run(stbbr_log_t loglevel, int port, int httpport)
 {
+    prctl(PR_SET_NAME, "main");
     pthread_mutex_lock(&send_queue_lock);
     send_queue = NULL;
     pthread_mutex_unlock(&send_queue_lock);

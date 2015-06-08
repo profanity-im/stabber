@@ -25,6 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/prctl.h>
+#include <pthread.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -32,7 +33,9 @@
 #include "stabber.h"
 
 static FILE *logp;
+static gboolean logready = FALSE;
 static stbbr_log_t minlevel;
+pthread_mutex_t loglock;
 
 gchar *
 _xdg_get_data_home(void)
@@ -107,6 +110,7 @@ _mkdir_recursive(const char *dir)
 void
 log_init(stbbr_log_t loglevel)
 {
+    pthread_mutex_lock(&loglock);
     minlevel = loglevel;
     gchar *xdg_data = _xdg_get_data_home();
     GString *log_dir = g_string_new(xdg_data);
@@ -119,6 +123,8 @@ log_init(stbbr_log_t loglevel)
     logp = fopen(log_file, "a");
     g_chmod(log_file, S_IRUSR | S_IWUSR);
     free(log_file);
+    logready = TRUE;
+    pthread_mutex_unlock(&loglock);
 }
 
 static char*
@@ -136,7 +142,8 @@ _levelstr(stbbr_log_t loglevel)
 void
 log_println(stbbr_log_t loglevel, const char * const msg, ...)
 {
-    if (loglevel >= minlevel) {
+    if (logready && loglevel >= minlevel) {
+        pthread_mutex_lock(&loglock);
         va_list arg;
         va_start(arg, msg);
         GString *fmt_msg = g_string_new(NULL);
@@ -154,13 +161,17 @@ log_println(stbbr_log_t loglevel, const char * const msg, ...)
         g_free(date_fmt);
         g_string_free(fmt_msg, TRUE);
         va_end(arg);
+        pthread_mutex_unlock(&loglock);
     }
 }
 
 void
 log_close(void)
 {
-    if (logp) {
+    pthread_mutex_lock(&loglock);
+    if (logready && logp) {
         fclose(logp);
     }
+    logready = FALSE;
+    pthread_mutex_unlock(&loglock);
 }
