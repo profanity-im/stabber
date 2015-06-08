@@ -34,9 +34,10 @@ Include the following in the linker path when compiling tests:
 ### Starting
 To start Stabber on port 5230 for example:
 ```c
-stbbr_start(5230, 0);
+stbbr_start(stbbr_log_t loglevel, 5230, 0);
 ```
 The second argument is the port to use for the HTTP interface, a value of 0 will not start the HTTP daemon.
+`loglevel` must be one of `STBBR_LOGDEBUG`, `STBBR_LOGINFO`, `STBBR_LOGWARN, `STBBR_LOGERROR`.
 
 ### Stopping
 To stop Stabber:
