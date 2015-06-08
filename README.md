@@ -144,8 +144,6 @@ stabber -p <port> -h <httpport> -l <loglevel>
 
 `<loglevel>` - The log level for Stabber, one of `DEBUG`, `INFO`, `WARN`, `ERROR`. Optional with a default of `INFO`.
 
-The second argument is the HTTP port on which Stabber will listen.
-
 ### Sending stanzas
 To send a message to a client currently connected to Stabber on port 5230, send a POST request to `http://localhost:5231/send` with the body containing the stanza to send, e.g.:
 ```
