@@ -135,8 +135,15 @@ Stabber logs to:
 # HTTP API
 To start stabber in standalone mode:
 ```
-stabber -p 5230 -h 5231
+stabber -p <port> -h <httpport> -l <loglevel> 
 ```
+
+`<port>` - The port on which to run the stubbed XMPP server.
+
+`<httpport>` - The port on which to run the HTTP API, optional.
+
+`<loglevel>` - The log level for Stabber, one of `DEBUG`, `INFO`, `WARN`, `ERROR`. Optional with a default of `INFO`.
+
 The second argument is the HTTP port on which Stabber will listen.
 
 ### Sending stanzas
