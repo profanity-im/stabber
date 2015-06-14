@@ -2,15 +2,15 @@
 Stubbed XMPP (Jabber) Server.
 
 # Overview
-Stabber acts as a stubbed XMPP service for testing purposes, the API allows:
+Stabber acts as a stubbed XMPP service for testing purposes, supporting:
 * Sending of XMPP stanzas.
 * Responding to XMPP stanzas with stubbed responses, by id, and by query namespace
 * Verifying that XMPP stanzas were received.
+* C API
+* Python bindings https://github.com/boothj5/stabber-python
+* HTTP API
 
-An HTTP API is also included, currently only supporting the `stbbr_send`, `stbbr_for_id` and `stbbr_for_query` operations.
-
-The project is work in progress with only the basics implemented, and is being developed alongside https://github.com/boothj5/profanity
-Currently the only API is written in C. Python bindings are in progress: https://github.com/boothj5/stabber-python
+The project is work in progress, and is being developed alongside https://github.com/boothj5/profanity
 
 # Installing
 ```
@@ -19,17 +19,15 @@ Currently the only API is written in C. Python bindings are in progress: https:/
 make
 make install (as root)
 ```
-# Using the C API
+# C API
 Include the following header in your tests:
 ```c
 #include <stabber.h>
-````
+```
 Include the following in the linker path when compiling tests:
 ```
 -lstabber
 ```
-
-# C API
 
 ### Starting
 To start Stabber:
@@ -112,7 +110,7 @@ stbbr_received(
         "<body>I know, its a test.</body>"
     "</message>"
 );
-````
+```
 By default the verification calls block for up to 10 seconds, the timeout in seconds can be set with:
 ```c
 stbbr_set_timeout(3);
@@ -124,12 +122,6 @@ Sometimes a test needs to wait until the client being tested has had time to sen
 
 ```c
 stbbr_wait_for("someid");
-```
-
-# Logs
-Stabber logs to:
-```
-~/.local/share/stabber/logs/stabber.log
 ```
 
 # HTTP API
@@ -158,6 +150,19 @@ curl --data '<message id="messageid1" to="stabber@localhost/profanity" from="bud
 To respond to a stanza with a specfic query namespace sent from the client, send a POST request to `http://localhost:5231/for?query=<xmlns>` where `<xmlns>` is the the query namespace you wish to respond to, e.g.:
 ```
 curl --data '<iq type="result" to="stabber@localhost/profanity"><query xmlns="jabber:iq:roster" ver="362"><item jid="buddy1@localhost" subscription="both" name="Buddy1"/><item jid="buddy2@localhost" subscription="both" name="Buddy2"/></query></iq>' http://localhost:5231/for?query=jabber:iq:roster
+```
+
+### Verify sent stanzas
+To verify that a stanza was received by Stabber, send a POST request to `http://localhost:5231/verify` where the body is the expected stanza, e.g.:
+```
+curl --data '<iq id="*" type="get"><ping xmlns="urn:xmpp:ping"/></iq>' http://localhost:5231/verify
+```
+The request will return immediately with a body containing either `true` or `false`.
+
+# Logs
+Stabber logs to:
+```
+~/.local/share/stabber/logs/stabber.log
 ```
 
 # Examples
