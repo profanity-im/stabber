@@ -166,4 +166,4 @@ Stabber logs to:
 ```
 
 # Examples
-Example tests for Profanity can be found at: https://github.com/boothj5/profanity/tree/master/functionaltests
+Example tests for Profanity can be found at: https://github.com/boothj5/profanity/tree/master/tests/functionaltests
