@@ -78,7 +78,7 @@ stbbr_last_received(char *stanza)
 int
 stbbr_received(char *stanza)
 {
-    return verify_any(stanza);
+    return verify_any(stanza, FALSE);
 }
 
 void

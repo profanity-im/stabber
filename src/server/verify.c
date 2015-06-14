@@ -44,12 +44,12 @@ verify_set_timeout(int seconds)
 }
 
 int
-verify_any(char *stanza_text)
+verify_any(char *stanza_text, gboolean ign_timeout)
 {
     XMPPStanza *stanza = stanza_parse(stanza_text);
 
     int result = 0;
-    if (timeoutsecs <= 0) {
+    if (timeoutsecs <= 0 || ign_timeout) {
         result = stanzas_verify_any(stanza);
     } else {
         double elapsed = 0.0;

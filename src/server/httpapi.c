@@ -34,6 +34,7 @@
 #include "server/log.h"
 #include "server/server.h"
 #include "server/prime.h"
+#include "server/verify.h"
 
 struct MHD_Daemon *httpdaemmon = NULL;
 
@@ -42,7 +43,8 @@ struct MHD_Daemon *httpdaemmon = NULL;
 typedef enum {
     STBBR_OP_UNKNOWN,
     STBBR_OP_SEND,
-    STBBR_OP_FOR
+    STBBR_OP_FOR,
+    STBBR_OP_VERIFY
 } stbbr_op_t;
 
 typedef struct conn_info_t {
@@ -99,6 +101,8 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
             con_info->stbbr_op = STBBR_OP_SEND;
         } else if (g_strcmp0(method, "POST") == 0 && g_strcmp0(url, "/for") == 0) {
             con_info->stbbr_op = STBBR_OP_FOR;
+        } else if (g_strcmp0(method, "POST") == 0 && g_strcmp0(url, "/verify") == 0) {
+            con_info->stbbr_op = STBBR_OP_VERIFY;
         } else {
             con_info->stbbr_op = STBBR_OP_UNKNOWN;
             return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
@@ -121,32 +125,44 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
         const char *query = NULL;
 
         switch (con_info->stbbr_op) {
+            case STBBR_OP_SEND:
+            {
+                server_send(con_info->body->str);
+                return send_response(conn, NULL, MHD_HTTP_OK);
+            }
+            case STBBR_OP_FOR:
+            {
+                id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
+                query = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "query");
+                if (id && query) {
+                    return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
+                }
 
-        case STBBR_OP_SEND:
-            server_send(con_info->body->str);
-            return send_response(conn, NULL, MHD_HTTP_OK);
+                if (id) {
+                    prime_for_id(id, con_info->body->str);
+                    return send_response(conn, NULL, MHD_HTTP_CREATED);
+                }
 
-        case STBBR_OP_FOR:
-            id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
-            query = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "query");
-            if (id && query) {
+                if (query) {
+                    prime_for_query(query, con_info->body->str);
+                    return send_response(conn, NULL, MHD_HTTP_CREATED);
+                }
+
                 return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
             }
-
-            if (id) {
-                prime_for_id(id, con_info->body->str);
-                return send_response(conn, NULL, MHD_HTTP_CREATED);
+            case STBBR_OP_VERIFY:
+            {
+                int res = verify_any(con_info->body->str, TRUE);
+                if (res) {
+                    return send_response(conn, "true", MHD_HTTP_OK);
+                } else {
+                    return send_response(conn, "false", MHD_HTTP_OK);
+                }
             }
-
-            if (query) {
-                prime_for_query(query, con_info->body->str);
-                return send_response(conn, NULL, MHD_HTTP_CREATED);
+            default:
+            {
+                return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
             }
-
-            return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
-
-        default:
-            return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
         }
     }
 }

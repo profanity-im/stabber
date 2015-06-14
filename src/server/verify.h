@@ -25,6 +25,6 @@
 
 void verify_set_timeout(int seconds);
 int verify_last(char *stanza);
-int verify_any(char *stanza);
+int verify_any(char *stanza, gboolean ign_timeout);
 
 #endif
