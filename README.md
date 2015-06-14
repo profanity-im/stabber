@@ -10,7 +10,7 @@ Stabber acts as a stubbed XMPP service for testing purposes, the API allows:
 An HTTP API is also included, currently only supporting the `stbbr_send`, `stbbr_for_id` and `stbbr_for_query` operations.
 
 The project is work in progress with only the basics implemented, and is being developed alongside https://github.com/boothj5/profanity
-Currently the only API is written in C.
+Currently the only API is written in C. Python bindings are in progress: https://github.com/boothj5/stabber-python
 
 # Installing
 ```
