@@ -8,6 +8,7 @@ Stabber acts as a stubbed XMPP service for testing purposes, supporting:
 * Verifying that XMPP stanzas were received.
 * C API
 * Python bindings https://github.com/boothj5/stabber-python
+* Java bindings https://github.com/boothj5/stabber-java
 * HTTP API
 
 The project is work in progress, and is being developed alongside https://github.com/boothj5/profanity
