@@ -11,6 +11,15 @@ LT_INIT
 ### Checks for programs.
 AC_PROG_CC
 
+### Get canonical host
+AC_CANONICAL_HOST
+PLATFORM="unknown"
+AS_CASE([$host_os],
+    [freebsd*], [PLATFORM="freebsd" AC_DEFINE([PLATFORM_FREEBSD], [1], [FreeBSD])],
+    [darwin*], [PLATFORM="osx" AC_DEFINE([PLATFORM_OSX], [1], [OSx])],
+    [cygwin], [PLATFORM="cygwin" AC_DEFINE([PLATFORM_CYGWIN], [1], [Cygwin])],
+    [PLATFORM="nix" AC_DEFINE([PLATFORM_NIX], [1], [Nix])])
+
 PKG_CHECK_MODULES([glib], [glib-2.0 >= 2.26], [],
     [AC_MSG_ERROR([glib 2.26 or higher is required])])
 
