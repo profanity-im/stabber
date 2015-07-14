@@ -20,11 +20,15 @@
  *
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#ifndef PLATFORM_OSX
 #include <sys/prctl.h>
+#endif
 #include <pthread.h>
 
 #include <glib.h>
@@ -152,7 +156,14 @@ log_println(stbbr_log_t loglevel, const char * const msg, ...)
         GDateTime *dt = g_date_time_new_now(tz);
         gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
         char thr_name[16];
+
+#ifdef PLATFORM_OSX
+        pthread_t self = pthread_self();
+        pthread_getname_np(self, thr_name, 16);
+#else
         prctl(PR_GET_NAME, thr_name);
+#endif
+
         char *levelstr = _levelstr(loglevel);
         fprintf(logp, "%s: [%s] [%s] %s\n", date_fmt, thr_name, levelstr, fmt_msg->str);
         g_date_time_unref(dt);

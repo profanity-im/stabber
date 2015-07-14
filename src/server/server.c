@@ -20,6 +20,8 @@
  *
  */
 
+#include <config.h>
+
 #include <string.h>
 #include <glib.h>
 #include <errno.h>
@@ -27,7 +29,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#ifdef PLATFORM_OSX
+#include <pthread.h>
+#else
 #include <sys/prctl.h>
+#endif
 
 #include "server/xmppclient.h"
 #include "server/stream_parser.h"
@@ -255,7 +261,11 @@ server_wait_for(char *id)
 void*
 _start_server_cb(void* userdata)
 {
+#ifdef PLATFORM_OSX
+    pthread_setname_np("stbr");
+#else
     prctl(PR_SET_NAME, "stbr");
+#endif
 
     struct sockaddr_in client_addr;
 
@@ -299,7 +309,12 @@ _start_server_cb(void* userdata)
 int
 server_run(stbbr_log_t loglevel, int port, int httpport)
 {
+#ifdef PLATFORM_OSX
+    pthread_setname_np("main");
+#else
     prctl(PR_SET_NAME, "main");
+#endif
+
     pthread_mutex_lock(&send_queue_lock);
     send_queue = NULL;
     pthread_mutex_unlock(&send_queue_lock);

@@ -20,11 +20,16 @@
  *
  */
 
+#include <config.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#ifdef PLATFORM_OSX
+#include <pthread.h>
+#else
 #include <sys/prctl.h>
+#endif
 
 #include <stdint.h>
 #include <sys/socket.h>
@@ -92,7 +97,11 @@ send_response(struct MHD_Connection* conn, const char* body, int status_code)
 int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const char* method,
     const char* version, const char* data, size_t* size, void** con_cls)
 {
+#ifdef PLATFORM_OSX
+    pthread_setname_np("http");
+#else
     prctl(PR_SET_NAME, "http");
+#endif
 
     if (*con_cls == NULL) {
         ConnectionInfo *con_info = create_connection_info();
