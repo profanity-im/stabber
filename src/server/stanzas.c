@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include <fnmatch.h>
 
 #include "server/stanza.h"
 #include "server/log.h"
@@ -41,7 +42,7 @@ stanzas_contains_id(char *id)
         GList *curr_attr = stanza->attrs;
         while (curr_attr) {
             XMPPAttr *attr = curr_attr->data;
-            if (g_strcmp0(attr->name, "id") == 0 && g_strcmp0(attr->value, id) == 0) {
+            if (g_strcmp0(attr->name, "id") == 0 && fnmatch(id, attr->value, 0) == 0) {
                 pthread_mutex_unlock(&stanzas_lock);
                 return 1;
             }
