@@ -241,7 +241,7 @@ stanza_get_query_request(XMPPStanza *stanza)
     }
 
     const char *type = stanza_get_attr(stanza, "type");
-    if (g_strcmp0(type, "get") != 0) {
+    if (g_strcmp0(type, "result") == 0) {
         return NULL;
     }
 
