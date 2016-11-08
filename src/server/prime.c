@@ -67,7 +67,7 @@ prime_required_passwd(char *password)
     required_passwd = strdup(password);
 }
 
-char *
+char*
 prime_get_passwd(void)
 {
     return required_passwd;
@@ -76,11 +76,12 @@ prime_get_passwd(void)
 void
 prime_for_id(const char *id, char *stream)
 {
-    if (idstubs) {
-        log_println(STBBR_LOGDEBUG, "Received stub for id: %s, stanza: %s", id, stream);
-
-        g_hash_table_insert(idstubs, strdup(id), strdup(stream));
+    if (!idstubs) {
+        return;
     }
+
+    log_println(STBBR_LOGDEBUG, "Received stub for id: %s, stanza: %s", id, stream);
+    g_hash_table_insert(idstubs, strdup(id), strdup(stream));
 }
 
 char*
@@ -92,15 +93,16 @@ prime_get_for_id(const char *id)
 void
 prime_for_query(const char *query, char *stream)
 {
-    if (querystubs) {
-        log_println(STBBR_LOGDEBUG, "Received stub for query: %s, stanza: %s", query, stream);
-
-        XMPPStanza *stanza = stanza_parse(stream);
-        g_hash_table_insert(querystubs, strdup(query), stanza);
+    if (!querystubs) {
+        return;
     }
+
+    log_println(STBBR_LOGDEBUG, "Received stub for query: %s, stanza: %s", query, stream);
+    XMPPStanza *stanza = stanza_parse(stream);
+    g_hash_table_insert(querystubs, strdup(query), stanza);
 }
 
-XMPPStanza *
+XMPPStanza*
 prime_get_for_query(const char *query)
 {
     return g_hash_table_lookup(querystubs, query);

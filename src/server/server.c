@@ -53,16 +53,16 @@
 #define STREAM_END "</stream:stream>"
 
 pthread_mutex_t send_queue_lock;
+
 static GList *send_queue;
-
 static XMPPClient *client;
-
-static void _shutdown(void);
-
 static int listen_socket;
 static pthread_t server_thread;
 static gboolean kill_recv = FALSE;
 static gboolean httpapi_run = FALSE;
+
+static void _shutdown(void);
+static void* _start_server_cb(void* userdata);
 
 void
 write_stream(const char * const stream)
@@ -225,23 +225,27 @@ void
 id_callback(const char *id)
 {
     char *stream = prime_get_for_id(id);
-    if (stream) {
-        log_println(STBBR_LOGINFO, "--> ID callback fired for '%s'", id);
-        write_stream(stream);
+    if (!stream) {
+        return;
     }
+
+    log_println(STBBR_LOGINFO, "--> ID callback fired for '%s'", id);
+    write_stream(stream);
 }
 
 void
 query_callback(const char *query, const char *id)
 {
     XMPPStanza *stanza = prime_get_for_query(query);
-    if (stanza) {
-        log_println(STBBR_LOGINFO, "--> QUERY callback fired for '%s'", query);
-        stanza_set_id(stanza, id);
-        char *stream = stanza_to_string(stanza);
-        write_stream(stream);
-        free(stream);
+    if (!stanza) {
+        return;
     }
+
+    log_println(STBBR_LOGINFO, "--> QUERY callback fired for '%s'", query);
+    stanza_set_id(stanza, id);
+    char *stream = stanza_to_string(stanza);
+    write_stream(stream);
+    free(stream);
 }
 
 void
@@ -256,54 +260,6 @@ server_wait_for(char *id)
         }
         usleep(1000 * 5);
     }
-}
-
-void*
-_start_server_cb(void* userdata)
-{
-#ifdef PLATFORM_OSX
-    pthread_setname_np("stbr");
-#else
-    prctl(PR_SET_NAME, "stbr");
-#endif
-
-    struct sockaddr_in client_addr;
-
-    // listen socket non blocking
-    int res = fcntl(listen_socket, F_SETFL, fcntl(listen_socket, F_GETFL, 0) | O_NONBLOCK);
-    if (res == -1) {
-        log_println(STBBR_LOGERROR, "Error setting nonblocking on listen socket: %s", strerror(errno));
-        return NULL;
-    }
-
-    log_println(STBBR_LOGINFO, "Waiting for incoming connection...");
-
-    // wait for connection
-    int c = sizeof(struct sockaddr_in);
-    int client_socket;
-    errno = 0;
-    while ((client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c)) == -1) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            log_println(STBBR_LOGERROR, "Accept failed: %s", strerror(errno));
-            return NULL;
-        }
-        errno = 0;
-        usleep(1000 * 5);
-    }
-
-    // client socket non blocking
-    res = fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0) | O_NONBLOCK);
-    if (res == -1) {
-        log_println(STBBR_LOGERROR, "Error setting nonblocking on client socket: %s", strerror(errno));
-        return NULL;
-    }
-
-    client = xmppclient_new(client_addr, client_socket);
-    parser_init(stream_start_callback, auth_callback, id_callback, query_callback);
-
-    read_stream();
-
-    return NULL;
 }
 
 int
@@ -401,11 +357,61 @@ server_send(char *stream)
 void
 server_stop(void)
 {
-    if (!kill_recv) {
-        log_println(STBBR_LOGINFO, "SERVER STOP");
-        kill_recv = TRUE;
-        pthread_join(server_thread, NULL);
+    if (kill_recv) {
+        return;
     }
+
+    log_println(STBBR_LOGINFO, "SERVER STOP");
+    kill_recv = TRUE;
+    pthread_join(server_thread, NULL);
+}
+
+static void*
+_start_server_cb(void* userdata)
+{
+#ifdef PLATFORM_OSX
+    pthread_setname_np("stbr");
+#else
+    prctl(PR_SET_NAME, "stbr");
+#endif
+
+    struct sockaddr_in client_addr;
+
+    // listen socket non blocking
+    int res = fcntl(listen_socket, F_SETFL, fcntl(listen_socket, F_GETFL, 0) | O_NONBLOCK);
+    if (res == -1) {
+        log_println(STBBR_LOGERROR, "Error setting nonblocking on listen socket: %s", strerror(errno));
+        return NULL;
+    }
+
+    log_println(STBBR_LOGINFO, "Waiting for incoming connection...");
+
+    // wait for connection
+    int c = sizeof(struct sockaddr_in);
+    int client_socket;
+    errno = 0;
+    while ((client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c)) == -1) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            log_println(STBBR_LOGERROR, "Accept failed: %s", strerror(errno));
+            return NULL;
+        }
+        errno = 0;
+        usleep(1000 * 5);
+    }
+
+    // client socket non blocking
+    res = fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0) | O_NONBLOCK);
+    if (res == -1) {
+        log_println(STBBR_LOGERROR, "Error setting nonblocking on client socket: %s", strerror(errno));
+        return NULL;
+    }
+
+    client = xmppclient_new(client_addr, client_socket);
+    parser_init(stream_start_callback, auth_callback, id_callback, query_callback);
+
+    read_stream();
+
+    return NULL;
 }
 
 static void

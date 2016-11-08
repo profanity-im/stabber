@@ -32,6 +32,11 @@ typedef struct parse_state_t {
     XMPPStanza *curr_stanza;
 } ParseState;
 
+static void _start_element(void *data, const char *element, const char **attributes);
+static void _end_element(void *data, const char *element);
+static void _handle_data(void *data, const char *content, int length);
+static void _attrs_free(XMPPAttr *attr);
+
 XMPPStanza*
 stanza_new(const char *name, const char **attributes)
 {
@@ -40,20 +45,18 @@ stanza_new(const char *name, const char **attributes)
     stanza->content = NULL;
     stanza->children = NULL;
     stanza->attrs = NULL;
-    if (attributes[0]) {
-        int i;
-        for (i = 0; attributes[i]; i += 2) {
-            XMPPAttr *attr = malloc(sizeof(XMPPAttr));
-            attr->name = strdup(attributes[i]);
-            attr->value = strdup(attributes[i+1]);
-            stanza->attrs = g_list_append(stanza->attrs, attr);
-        }
+    int i;
+    for (i = 0; attributes[i]; i += 2) {
+        XMPPAttr *attr = malloc(sizeof(XMPPAttr));
+        attr->name = strdup(attributes[i]);
+        attr->value = strdup(attributes[i+1]);
+        stanza->attrs = g_list_append(stanza->attrs, attr);
     }
 
     return stanza;
 }
 
-char *
+char*
 stanza_to_string(XMPPStanza *stanza)
 {
     GString *stanza_str = g_string_new("<");
@@ -168,7 +171,7 @@ stanza_get_child_by_name(XMPPStanza *stanza, char *name)
     return NULL;
 }
 
-const char *
+const char*
 stanza_get_id(XMPPStanza *stanza)
 {
     if (!stanza) {
@@ -213,7 +216,7 @@ stanza_set_id(XMPPStanza *stanza, const char *id)
     stanza->attrs = g_list_append(stanza->attrs, attrnew);
 }
 
-const char *
+const char*
 stanza_get_attr(XMPPStanza *stanza, const char *name)
 {
     if (!stanza->attrs) {
@@ -233,7 +236,7 @@ stanza_get_attr(XMPPStanza *stanza, const char *name)
     return NULL;
 }
 
-const char *
+const char*
 stanza_get_query_request(XMPPStanza *stanza)
 {
     if (g_strcmp0(stanza->name, "iq") != 0) {
@@ -258,32 +261,42 @@ stanza_get_query_request(XMPPStanza *stanza)
     return xmlns;
 }
 
-static void
-_attrs_free(XMPPAttr *attr)
-{
-    if (attr) {
-        free(attr->name);
-        free(attr->value);
-        free(attr);
-    }
-}
-
 void
 stanza_free(XMPPStanza *stanza)
 {
-    if (stanza) {
-        free(stanza->name);
-        if (stanza->content) {
-            g_string_free(stanza->content, TRUE);
-        }
-        g_list_free_full(stanza->attrs, (GDestroyNotify)_attrs_free);
-        g_list_free_full(stanza->children, (GDestroyNotify)stanza_free);
-        free(stanza);
+    if (!stanza) {
+        return;
     }
+
+    free(stanza->name);
+    if (stanza->content) {
+        g_string_free(stanza->content, TRUE);
+    }
+    g_list_free_full(stanza->attrs, (GDestroyNotify)_attrs_free);
+    g_list_free_full(stanza->children, (GDestroyNotify)stanza_free);
+    free(stanza);
+}
+
+XMPPStanza*
+stanza_parse(char *stanza_text)
+{
+    ParseState *state = malloc(sizeof(ParseState));
+    state->depth = 0;
+    state->curr_stanza = NULL;
+
+    XML_Parser parser = XML_ParserCreate(NULL);
+    XML_SetElementHandler(parser, _start_element, _end_element);
+    XML_SetCharacterDataHandler(parser, _handle_data);
+    XML_SetUserData(parser, state);
+
+    XML_Parse(parser, stanza_text, strlen(stanza_text), 0);
+    XML_ParserFree(parser);
+
+    return state->curr_stanza;
 }
 
 static void
-start_element(void *data, const char *element, const char **attributes)
+_start_element(void *data, const char *element, const char **attributes)
 {
     ParseState *state = data;
 
@@ -300,7 +313,7 @@ start_element(void *data, const char *element, const char **attributes)
 }
 
 static void
-end_element(void *data, const char *element)
+_end_element(void *data, const char *element)
 {
     ParseState *state = data;
 
@@ -313,7 +326,7 @@ end_element(void *data, const char *element)
 }
 
 static void
-handle_data(void *data, const char *content, int length)
+_handle_data(void *data, const char *content, int length)
 {
     ParseState *state = data;
 
@@ -324,20 +337,14 @@ handle_data(void *data, const char *content, int length)
     g_string_append_len(state->curr_stanza->content, content, length);
 }
 
-XMPPStanza *
-stanza_parse(char *stanza_text)
+static void
+_attrs_free(XMPPAttr *attr)
 {
-    ParseState *state = malloc(sizeof(ParseState));
-    state->depth = 0;
-    state->curr_stanza = NULL;
+    if (!attr) {
+        return;
+    }
 
-    XML_Parser parser = XML_ParserCreate(NULL);
-    XML_SetElementHandler(parser, start_element, end_element);
-    XML_SetCharacterDataHandler(parser, handle_data);
-    XML_SetUserData(parser, state);
-
-    XML_Parse(parser, stanza_text, strlen(stanza_text), 0);
-    XML_ParserFree(parser);
-
-    return state->curr_stanza;
+    free(attr->name);
+    free(attr->value);
+    free(attr);
 }

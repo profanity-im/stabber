@@ -32,6 +32,9 @@
 pthread_mutex_t stanzas_lock;
 static GList *stanzas;
 
+static int _xmpp_attr_equal(XMPPAttr *attr1, XMPPAttr *attr2);
+static int _stanzas_equal(XMPPStanza *first, XMPPStanza *second);
+
 int
 stanzas_contains_id(char *id)
 {
@@ -60,6 +63,64 @@ stanzas_add(XMPPStanza *stanza)
 {
     pthread_mutex_lock(&stanzas_lock);
     stanzas = g_list_append(stanzas, stanza);
+    pthread_mutex_unlock(&stanzas_lock);
+}
+
+int
+stanzas_verify_any(XMPPStanza *stanza)
+{
+    pthread_mutex_lock(&stanzas_lock);
+    if (!stanzas) {
+        pthread_mutex_unlock(&stanzas_lock);
+        return 0;
+    }
+
+    GList *curr = g_list_last(stanzas);
+    while (curr) {
+        XMPPStanza *curr_stanza = curr->data;
+        if (_stanzas_equal(stanza, curr_stanza) == 0) {
+            pthread_mutex_unlock(&stanzas_lock);
+            return 1;
+        }
+
+        curr = g_list_previous(curr);
+    }
+
+    pthread_mutex_unlock(&stanzas_lock);
+    return 0;
+}
+
+int
+stanzas_verify_last(XMPPStanza *stanza)
+{
+    pthread_mutex_lock(&stanzas_lock);
+    if (!stanzas) {
+        pthread_mutex_unlock(&stanzas_lock);
+        return 0;
+    }
+
+    GList *last = g_list_last(stanzas);
+    if (!last) {
+        pthread_mutex_unlock(&stanzas_lock);
+        return 0;
+    }
+
+    XMPPStanza *last_stanza = (XMPPStanza *)last->data;
+    int res = _stanzas_equal(stanza, last_stanza);
+    pthread_mutex_unlock(&stanzas_lock);
+    if (res == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void
+stanzas_free_all(void)
+{
+    pthread_mutex_lock(&stanzas_lock);
+    g_list_free_full(stanzas, (GDestroyNotify)stanza_free);
+    stanzas = NULL;
     pthread_mutex_unlock(&stanzas_lock);
 }
 
@@ -147,62 +208,4 @@ _stanzas_equal(XMPPStanza *first, XMPPStanza *second)
     }
 
     return 0;
-}
-
-int
-stanzas_verify_any(XMPPStanza *stanza)
-{
-    pthread_mutex_lock(&stanzas_lock);
-    if (!stanzas) {
-        pthread_mutex_unlock(&stanzas_lock);
-        return 0;
-    }
-
-    GList *curr = g_list_last(stanzas);
-    while (curr) {
-        XMPPStanza *curr_stanza = curr->data;
-        if (_stanzas_equal(stanza, curr_stanza) == 0) {
-            pthread_mutex_unlock(&stanzas_lock);
-            return 1;
-        }
-
-        curr = g_list_previous(curr);
-    }
-
-    pthread_mutex_unlock(&stanzas_lock);
-    return 0;
-}
-
-int
-stanzas_verify_last(XMPPStanza *stanza)
-{
-    pthread_mutex_lock(&stanzas_lock);
-    if (!stanzas) {
-        pthread_mutex_unlock(&stanzas_lock);
-        return 0;
-    }
-
-    GList *last = g_list_last(stanzas);
-    if (!last) {
-        pthread_mutex_unlock(&stanzas_lock);
-        return 0;
-    }
-
-    XMPPStanza *last_stanza = (XMPPStanza *)last->data;
-    int res = _stanzas_equal(stanza, last_stanza);
-    pthread_mutex_unlock(&stanzas_lock);
-    if (res == 0) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-void
-stanzas_free_all(void)
-{
-    pthread_mutex_lock(&stanzas_lock);
-    g_list_free_full(stanzas, (GDestroyNotify)stanza_free);
-    stanzas = NULL;
-    pthread_mutex_unlock(&stanzas_lock);
 }

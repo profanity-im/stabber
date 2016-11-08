@@ -86,16 +86,19 @@ send_response(struct MHD_Connection* conn, const char* body, int status_code)
         response = MHD_create_response_from_data(0, NULL, MHD_NO, MHD_YES);
     }
 
-    if (!response)
+    if (!response) {
         return MHD_NO;
+    }
 
     int ret = MHD_queue_response(conn, status_code, response);
     MHD_destroy_response(response);
+
     return ret;
 }
 
-int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const char* method,
-    const char* version, const char* data, size_t* size, void** con_cls)
+int
+connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const char* method, const char* version,
+    const char* data, size_t* size, void** con_cls)
 {
 #ifdef PLATFORM_OSX
     pthread_setname_np("http");
@@ -129,55 +132,49 @@ int connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const
         *size = 0;
 
         return MHD_YES;
-    } else {
-        const char *id = NULL;
-        const char *query = NULL;
+    }
 
-        switch (con_info->stbbr_op) {
-            case STBBR_OP_SEND:
-            {
-                server_send(con_info->body->str);
-                return send_response(conn, NULL, MHD_HTTP_OK);
-            }
-            case STBBR_OP_FOR:
-            {
-                id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
-                query = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "query");
-                if (id && query) {
-                    return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
-                }
+    const char *id = NULL;
+    const char *query = NULL;
+    int res = 0;
 
-                if (id) {
-                    prime_for_id(id, con_info->body->str);
-                    return send_response(conn, NULL, MHD_HTTP_CREATED);
-                }
+    switch (con_info->stbbr_op) {
+        case STBBR_OP_SEND:
+            server_send(con_info->body->str);
 
-                if (query) {
-                    prime_for_query(query, con_info->body->str);
-                    return send_response(conn, NULL, MHD_HTTP_CREATED);
-                }
-
+            return send_response(conn, NULL, MHD_HTTP_OK);
+        case STBBR_OP_FOR:
+            id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
+            query = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "query");
+            if (id && query) {
                 return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
             }
-            case STBBR_OP_VERIFY:
-            {
-                int res = verify_any(con_info->body->str, TRUE);
-                if (res) {
-                    return send_response(conn, "true", MHD_HTTP_OK);
-                } else {
-                    return send_response(conn, "false", MHD_HTTP_OK);
-                }
+
+            if (id) {
+                prime_for_id(id, con_info->body->str);
+                return send_response(conn, NULL, MHD_HTTP_CREATED);
             }
-            default:
-            {
-                return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
+
+            if (query) {
+                prime_for_query(query, con_info->body->str);
+                return send_response(conn, NULL, MHD_HTTP_CREATED);
             }
-        }
+
+            return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
+        case STBBR_OP_VERIFY:
+            res = verify_any(con_info->body->str, TRUE);
+            if (res) {
+                return send_response(conn, "true", MHD_HTTP_OK);
+            } else {
+                return send_response(conn, "false", MHD_HTTP_OK);
+            }
+        default:
+            return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
     }
 }
 
-void request_completed(void* cls, struct MHD_Connection* conn,
-                       void** con_cls, enum MHD_RequestTerminationCode termcode)
+void
+request_completed(void* cls, struct MHD_Connection* conn, void** con_cls, enum MHD_RequestTerminationCode termcode)
 {
     ConnectionInfo *con_info = (ConnectionInfo*) *con_cls;
     if (con_info) {

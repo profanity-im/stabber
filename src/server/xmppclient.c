@@ -48,16 +48,18 @@ xmppclient_new(struct sockaddr_in client_addr, int socket)
 void
 xmppclient_end_session(XMPPClient *client)
 {
-    if (client) {
-        if (client->sock) {
-            shutdown(client->sock, 2);
-            while (recv(client->sock, NULL, 1, 0) > 0) {}
-            close(client->sock);
-        }
-        free(client->ip);
-        free(client->username);
-        free(client->password);
-        free(client->resource);
-        free(client);
+    if (!client) {
+        return;
     }
+
+    if (client->sock) {
+        shutdown(client->sock, 2);
+        while (recv(client->sock, NULL, 1, 0) > 0) {}
+        close(client->sock);
+    }
+    free(client->ip);
+    free(client->username);
+    free(client->password);
+    free(client->resource);
+    free(client);
 }

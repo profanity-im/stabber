@@ -42,8 +42,59 @@ static auth_func auth_cb = NULL;
 static id_func id_cb = NULL;
 static query_func query_cb = NULL;
 
+static void _start_element(void *data, const char *element, const char **attributes);
+static void _end_element(void *data, const char *element);
+static void _handle_data(void *data, const char *content, int length);
+
+void
+parser_init(stream_start_func startcb, auth_func authcb, id_func idcb, query_func querycb)
+{
+    if (curr_string) {
+        g_string_free(curr_string, TRUE);
+    }
+    curr_string = g_string_new("");
+
+    stream_start_cb = startcb;
+    auth_cb = authcb;
+    id_cb = idcb;
+    query_cb = querycb;
+
+    parser = XML_ParserCreate(NULL);
+    XML_SetElementHandler(parser, _start_element, _end_element);
+    XML_SetCharacterDataHandler(parser, _handle_data);
+}
+
+int
+parser_feed(char *chunk, int len)
+{
+    g_string_append_len(curr_string, chunk, len);
+    int res = XML_Parse(parser, chunk, len, 0);
+    parser_reset();
+
+    return res;
+}
+
+void
+parser_close(void)
+{
+    XML_ParserFree(parser);
+    parser = NULL;
+}
+
+void
+parser_reset(void)
+{
+    if (do_reset != 1) {
+        return;
+    }
+
+    parser_close();
+    parser_init(stream_start_cb, auth_cb, id_cb, query_cb);
+    do_reset = 0;
+}
+
 static void
-start_element(void *data, const char *element, const char **attributes)
+_start_element(void *data, const char *element, const char **attributes)
 {
     if (g_strcmp0(element, "stream:stream") == 0) {
         log_println(STBBR_LOGINFO, "RECV: %s", curr_string->str);
@@ -66,83 +117,39 @@ start_element(void *data, const char *element, const char **attributes)
 }
 
 static void
-end_element(void *data, const char *element)
+_end_element(void *data, const char *element)
 {
     depth--;
-
     if (depth > 0) {
         stanza_add_child(curr_stanza->parent, curr_stanza);
         curr_stanza = curr_stanza->parent;
-    } else {
-        log_println(STBBR_LOGINFO, "RECV: %s", curr_string->str);
-        stanzas_add(curr_stanza);
-        if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
-            auth_cb(curr_stanza);
-        } else {
-            const char *id = stanza_get_id(curr_stanza);
-            if (id) {
-                id_cb(id);
-            }
-            const char *query = stanza_get_query_request(curr_stanza);
-            if (query) {
-                query_cb(query, id);
-            }
-        }
-
-        do_reset = 1;
+        return;
     }
+
+    log_println(STBBR_LOGINFO, "RECV: %s", curr_string->str);
+    stanzas_add(curr_stanza);
+    if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
+        auth_cb(curr_stanza);
+    } else {
+        const char *id = stanza_get_id(curr_stanza);
+        if (id) {
+            id_cb(id);
+        }
+        const char *query = stanza_get_query_request(curr_stanza);
+        if (query) {
+            query_cb(query, id);
+        }
+    }
+
+    do_reset = 1;
 }
 
 static void
-handle_data(void *data, const char *content, int length)
+_handle_data(void *data, const char *content, int length)
 {
     if (!curr_stanza->content) {
         curr_stanza->content = g_string_new("");
     }
 
     g_string_append_len(curr_stanza->content, content, length);
-}
-
-void
-parser_init(stream_start_func startcb, auth_func authcb, id_func idcb, query_func querycb)
-{
-    if (curr_string) {
-        g_string_free(curr_string, TRUE);
-    }
-    curr_string = g_string_new("");
-
-    stream_start_cb = startcb;
-    auth_cb = authcb;
-    id_cb = idcb;
-    query_cb = querycb;
-
-    parser = XML_ParserCreate(NULL);
-    XML_SetElementHandler(parser, start_element, end_element);
-    XML_SetCharacterDataHandler(parser, handle_data);
-}
-
-int
-parser_feed(char *chunk, int len)
-{
-    g_string_append_len(curr_string, chunk, len);
-    int res = XML_Parse(parser, chunk, len, 0);
-    parser_reset();
-    return res;
-}
-
-void
-parser_close(void)
-{
-    XML_ParserFree(parser);
-    parser = NULL;
-}
-
-void
-parser_reset(void)
-{
-    if (do_reset == 1) {
-        parser_close();
-        parser_init(stream_start_cb, auth_cb, id_cb, query_cb);
-        do_reset = 0;
-    }
 }
