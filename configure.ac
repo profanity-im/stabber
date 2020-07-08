@@ -28,16 +28,18 @@ PKG_CHECK_MODULES([expat], [expat >= 2.0.0], [],
         [expat_LIBS="-lexpat"],
         [AC_MSG_ERROR([expat 2.0.0 or higher is required])])])
 
+PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd >= 0.9.71],
+    [AC_CHECK_HEADER([microhttpd.h],
+        [microhttpd_LIBS="-lmicrohttpd"],
+        [AC_MSG_ERROR([libmicrohttpd 0.9.71 or higher is required])])], [])
+
 AC_CHECK_LIB([pthread], [main], [],
     [AC_MSG_ERROR([pthread is required])])
 
-PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd >= 0.9.71], [],
-    [AC_MSG_ERROR([libmicrohttpd 0.9.71 or higher is required])])
-
 AM_CFLAGS="-Wall -Wno-deprecated-declarations"
 AM_CFLAGS="$AM_CFLAGS -Wunused -Werror"
-AM_CPPFLAGS="$AM_CPPFLAGS $glib_CFLAGS $expat_CFLAGS"
-LIBS="$glib_LIBS $expat_LIBS $LIBS"
+AM_CPPFLAGS="$AM_CPPFLAGS $glib_CFLAGS $expat_CFLAGS $microhttpd_CFLAGS"
+LIBS="$glib_LIBS $expat_LIBS $microhttpd_LIBS $LIBS"
 
 AC_SUBST(AM_CFLAGS)
 AC_SUBST(AM_CPPFLAGS)
