@@ -76,7 +76,7 @@ destroy_connection_info(ConnectionInfo *con_info)
     free(con_info);
 }
 
-int
+enum MHD_Result
 send_response(struct MHD_Connection* conn, const char* body, int status_code)
 {
     struct MHD_Response* response;
@@ -96,7 +96,7 @@ send_response(struct MHD_Connection* conn, const char* body, int status_code)
     return ret;
 }
 
-int
+enum MHD_Result
 connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const char* method, const char* version,
     const char* data, size_t* size, void** con_cls)
 {
