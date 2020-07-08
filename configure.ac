@@ -31,8 +31,8 @@ PKG_CHECK_MODULES([expat], [expat >= 2.0.0], [],
 AC_CHECK_LIB([pthread], [main], [],
     [AC_MSG_ERROR([pthread is required])])
 
-AC_CHECK_LIB([microhttpd], [main], [],
-    [AC_MSG_ERROR([microhttpd is required])])
+PKG_CHECK_MODULES([libmicrohttpd], [libmicrohttpd >= 0.9.71], [],
+    [AC_MSG_ERROR([libmicrohttpd 0.9.71 or higher is required])])
 
 AM_CFLAGS="-Wall -Wno-deprecated-declarations"
 AM_CFLAGS="$AM_CFLAGS -Wunused -Werror"
