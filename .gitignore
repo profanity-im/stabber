@@ -17,12 +17,6 @@ src/server/.dirstamp
 
 src/stamp-h1
 
-.codelite/
-stabber.project
-stabber.workspace
-compile_commands.json
-stabber.tags
-
 .deps/
 .libs/
 libstabber.la
@@ -46,3 +40,16 @@ src/server/stanzas.lo
 src/server/stanza.lo
 
 stabbertest
+
+# IDE
+.codelite/
+.vscode/
+stabber.project
+stabber.workspace
+compile_commands.json
+stabber.tags
+.tern-port
+.tern-project
+.cproject
+.project
+.settings/
