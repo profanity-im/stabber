@@ -102,9 +102,7 @@ stanza_to_string(XMPPStanza *stanza)
         g_string_append(stanza_str, "/>");
     }
 
-    char *result = stanza_str->str;
-    g_string_free(stanza_str, FALSE);
-
+    char *result = g_string_free(stanza_str, FALSE);
     return result;
 }
 
@@ -128,17 +126,16 @@ stanza_get_child_by_ns(XMPPStanza *stanza, char *ns)
     GList *curr_child = stanza->children;
     while (curr_child) {
         XMPPStanza *child = curr_child->data;
-        if (!child->attrs) {
-            return NULL;
-        }
-        GList *curr_attr = child->attrs;
-        while (curr_attr) {
-            XMPPAttr *attr = curr_attr->data;
-            if ((g_strcmp0(attr->name, "xmlns") == 0) && (g_strcmp0(attr->value, ns) == 0)) {
-                return child;
-            }
+        if (child->attrs) {
+            GList *curr_attr = child->attrs;
+            while (curr_attr) {
+                XMPPAttr *attr = curr_attr->data;
+                if ((g_strcmp0(attr->name, "xmlns") == 0) && (g_strcmp0(attr->value, ns) == 0)) {
+                    return child;
+                }
 
-            curr_attr = g_list_next(curr_attr);
+                curr_attr = g_list_next(curr_attr);
+            }
         }
 
         curr_child = g_list_next(curr_child);

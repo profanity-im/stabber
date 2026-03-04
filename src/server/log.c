@@ -41,6 +41,18 @@ static gboolean logready = FALSE;
 static stbbr_log_t minlevel;
 pthread_mutex_t loglock;
 
+static gboolean loglock_initialized = FALSE;
+
+void
+log_pre_init(void)
+{
+    if (loglock_initialized) {
+        return;
+    }
+    pthread_mutex_init(&loglock, NULL);
+    loglock_initialized = TRUE;
+}
+
 static gchar* _xdg_get_data_home(void);
 static gchar* _get_main_log_file(void);
 static gboolean _create_dir(char *name);
@@ -50,6 +62,7 @@ static char* _levelstr(stbbr_log_t loglevel);
 void
 log_init(stbbr_log_t loglevel)
 {
+    log_pre_init();
     pthread_mutex_lock(&loglock);
     minlevel = loglevel;
     gchar *xdg_data = _xdg_get_data_home();
@@ -61,6 +74,11 @@ log_init(stbbr_log_t loglevel)
 
     gchar *log_file = _get_main_log_file();
     logp = fopen(log_file, "a");
+    if (!logp) {
+        free(log_file);
+        pthread_mutex_unlock(&loglock);
+        return;
+    }
     g_chmod(log_file, S_IRUSR | S_IWUSR);
     free(log_file);
     logready = TRUE;
@@ -70,19 +88,27 @@ log_init(stbbr_log_t loglevel)
 void
 log_println(stbbr_log_t loglevel, const char * const msg, ...)
 {
+    log_pre_init();
     if (!logready || loglevel < minlevel) {
         return;
     }
 
     pthread_mutex_lock(&loglock);
+    if (!logready || !logp) {
+        pthread_mutex_unlock(&loglock);
+        return;
+    }
+
     va_list arg;
     va_start(arg, msg);
     GString *fmt_msg = g_string_new(NULL);
     g_string_vprintf(fmt_msg, msg, arg);
-    GTimeZone *tz = g_time_zone_new_local();
-    GDateTime *dt = g_date_time_new_now(tz);
+    va_end(arg);
+
+    GDateTime *dt = g_date_time_new_now_local();
     gchar *date_fmt = g_date_time_format(dt, "%d/%m/%Y %H:%M:%S");
     char thr_name[16];
+    memset(thr_name, 0, 16);
 
 #ifdef PLATFORM_OSX
     pthread_t self = pthread_self();
@@ -93,18 +119,18 @@ log_println(stbbr_log_t loglevel, const char * const msg, ...)
 
     char *levelstr = _levelstr(loglevel);
     fprintf(logp, "%s: [%s] [%s] %s\n", date_fmt, thr_name, levelstr, fmt_msg->str);
-    g_date_time_unref(dt);
-    g_time_zone_unref(tz);
     fflush(logp);
+
+    g_date_time_unref(dt);
     g_free(date_fmt);
     g_string_free(fmt_msg, TRUE);
-    va_end(arg);
     pthread_mutex_unlock(&loglock);
 }
 
 void
 log_close(void)
 {
+    log_pre_init();
     pthread_mutex_lock(&loglock);
     if (logready && logp) {
         fclose(logp);
@@ -117,15 +143,16 @@ static gchar*
 _xdg_get_data_home(void)
 {
     gchar *xdg_data_home = getenv("XDG_DATA_HOME");
-    if (xdg_data_home) {
-        g_strstrip(xdg_data_home);
-    }
-
     if (xdg_data_home && (strcmp(xdg_data_home, "") != 0)) {
         return strdup(xdg_data_home);
     }
 
-    GString *default_path = g_string_new(getenv("HOME"));
+    char *home = getenv("HOME");
+    if (!home) {
+        return strdup("/tmp");
+    }
+
+    GString *default_path = g_string_new(home);
     g_string_append(default_path, "/.local/share");
     gchar *result = strdup(default_path->str);
     g_string_free(default_path, TRUE);

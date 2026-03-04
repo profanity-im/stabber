@@ -6,7 +6,8 @@
 
 int main(void)
 {
-    stbbr_start(STBBR_LOGDEBUG, 5230, 5231);
+    int port = 5230;
+    stbbr_start(STBBR_LOGDEBUG, &port, 5231);
 
     stbbr_auth_passwd("password");
 

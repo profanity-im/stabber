@@ -31,7 +31,6 @@
 #include "server/log.h"
 
 static int depth = 0;
-static int do_reset = 0;
 
 static XML_Parser parser;
 static XMPPStanza *curr_stanza;
@@ -62,45 +61,37 @@ parser_init(stream_start_func startcb, auth_func authcb, id_func idcb, query_fun
     parser = XML_ParserCreate(NULL);
     XML_SetElementHandler(parser, _start_element, _end_element);
     XML_SetCharacterDataHandler(parser, _handle_data);
+    depth = 0;
 }
 
 int
 parser_feed(char *chunk, int len)
 {
-    g_string_append_len(curr_string, chunk, len);
     int res = XML_Parse(parser, chunk, len, 0);
-    parser_reset();
-
     return res;
 }
 
 void
 parser_close(void)
 {
-    XML_ParserFree(parser);
-    parser = NULL;
+    if (parser) {
+        XML_ParserFree(parser);
+        parser = NULL;
+    }
 }
 
 void
 parser_reset(void)
 {
-    if (do_reset != 1) {
-        return;
-    }
-
-    parser_close();
-    parser_init(stream_start_cb, auth_cb, id_cb, query_cb);
-    do_reset = 0;
+    // No-op for continuous XMPP stream
 }
 
 static void
 _start_element(void *data, const char *element, const char **attributes)
 {
     if (g_strcmp0(element, "stream:stream") == 0) {
-        log_println(STBBR_LOGINFO, "RECV: %s", curr_string->str);
+        log_println(STBBR_LOGINFO, "RECV: <stream:stream>");
         stream_start_cb();
-        do_reset = 1;
-        return;
     }
 
     XMPPStanza *stanza = stanza_new(element, attributes);
@@ -120,36 +111,41 @@ static void
 _end_element(void *data, const char *element)
 {
     depth--;
-    if (depth > 0) {
+    
+    if (depth > 1) {
         stanza_add_child(curr_stanza->parent, curr_stanza);
         curr_stanza = curr_stanza->parent;
         return;
     }
 
-    log_println(STBBR_LOGINFO, "RECV: %s", curr_string->str);
-    stanzas_add(curr_stanza);
-    if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
-        auth_cb(curr_stanza);
-    } else {
-        const char *id = stanza_get_id(curr_stanza);
-        if (id) {
-            id_cb(id);
+    if (depth == 1) {
+        log_println(STBBR_LOGINFO, "RECV stanza: %s", element);
+        stanzas_add(curr_stanza);
+        
+        if (stanza_get_child_by_ns(curr_stanza, "jabber:iq:auth")) {
+            auth_cb(curr_stanza);
+        } else {
+            const char *id = stanza_get_id(curr_stanza);
+            if (id) {
+                id_cb(curr_stanza->name, id);
+            }
+            const char *query = stanza_get_query_request(curr_stanza);
+            if (query) {
+                query_cb(query, id);
+            }
         }
-        const char *query = stanza_get_query_request(curr_stanza);
-        if (query) {
-            query_cb(query, id);
-        }
+        
+        curr_stanza = curr_stanza->parent;
     }
-
-    do_reset = 1;
 }
 
 static void
 _handle_data(void *data, const char *content, int length)
 {
-    if (!curr_stanza->content) {
-        curr_stanza->content = g_string_new("");
+    if (depth > 1) {
+        if (!curr_stanza->content) {
+            curr_stanza->content = g_string_new("");
+        }
+        g_string_append_len(curr_stanza->content, content, length);
     }
-
-    g_string_append_len(curr_stanza->content, content, length);
 }

@@ -32,28 +32,66 @@
 pthread_mutex_t stanzas_lock;
 static GList *stanzas;
 
+static gboolean stanzas_initialized = FALSE;
+
+void
+stanzas_init(void)
+{
+    if (stanzas_initialized) {
+        return;
+    }
+    pthread_mutex_init(&stanzas_lock, NULL);
+    stanzas_initialized = TRUE;
+}
+
 static int _xmpp_attr_equal(XMPPAttr *attr1, XMPPAttr *attr2);
 static int _stanzas_equal(XMPPStanza *first, XMPPStanza *second);
 
 int
 stanzas_contains_id(char *id)
 {
+    stanzas_init();
+    
+    char *name_filter = NULL;
+    char *id_filter = id;
+    char *colon = strchr(id, ':');
+    if (colon) {
+        name_filter = g_strndup(id, colon - id);
+        id_filter = colon + 1;
+    }
+
     pthread_mutex_lock(&stanzas_lock);
     GList *curr = stanzas;
     while (curr) {
         XMPPStanza *stanza = curr->data;
-        GList *curr_attr = stanza->attrs;
-        while (curr_attr) {
-            XMPPAttr *attr = curr_attr->data;
-            if (g_strcmp0(attr->name, "id") == 0 && fnmatch(id, attr->value, 0) == 0) {
+        
+        gboolean name_match = TRUE;
+        if (name_filter && g_strcmp0(stanza->name, name_filter) != 0) {
+            name_match = FALSE;
+        }
+
+        if (name_match) {
+            GList *curr_attr = stanza->attrs;
+            while (curr_attr) {
+                XMPPAttr *attr = curr_attr->data;
+                if (g_strcmp0(attr->name, "id") == 0 && fnmatch(id_filter, attr->value, 0) == 0) {
+                    pthread_mutex_unlock(&stanzas_lock);
+                    g_free(name_filter);
+                    return 1;
+                }
+                curr_attr = g_list_next(curr_attr);
+            }
+            // If we are looking for ANY id in a specific stanza name
+            if (g_strcmp0(id_filter, "*") == 0) {
                 pthread_mutex_unlock(&stanzas_lock);
+                g_free(name_filter);
                 return 1;
             }
-            curr_attr = g_list_next(curr_attr);
         }
         curr = g_list_next(curr);
     }
     pthread_mutex_unlock(&stanzas_lock);
+    g_free(name_filter);
 
     return 0;
 }
@@ -61,6 +99,7 @@ stanzas_contains_id(char *id)
 void
 stanzas_add(XMPPStanza *stanza)
 {
+    stanzas_init();
     pthread_mutex_lock(&stanzas_lock);
     stanzas = g_list_append(stanzas, stanza);
     pthread_mutex_unlock(&stanzas_lock);
@@ -69,6 +108,7 @@ stanzas_add(XMPPStanza *stanza)
 int
 stanzas_verify_any(XMPPStanza *stanza)
 {
+    stanzas_init();
     pthread_mutex_lock(&stanzas_lock);
     if (!stanzas) {
         pthread_mutex_unlock(&stanzas_lock);
@@ -93,6 +133,7 @@ stanzas_verify_any(XMPPStanza *stanza)
 int
 stanzas_verify_last(XMPPStanza *stanza)
 {
+    stanzas_init();
     pthread_mutex_lock(&stanzas_lock);
     if (!stanzas) {
         pthread_mutex_unlock(&stanzas_lock);
@@ -118,6 +159,7 @@ stanzas_verify_last(XMPPStanza *stanza)
 void
 stanzas_free_all(void)
 {
+    stanzas_init();
     pthread_mutex_lock(&stanzas_lock);
     g_list_free_full(stanzas, (GDestroyNotify)stanza_free);
     stanzas = NULL;

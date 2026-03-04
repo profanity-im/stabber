@@ -76,7 +76,7 @@ main(int argc , char *argv[])
         return 1;
     }
 
-    stbbr_start(loglevel, port, httpport);
+    stbbr_start(loglevel, &port, httpport);
 
     pthread_exit(0);
 }

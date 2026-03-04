@@ -30,10 +30,27 @@
 
 #include "stabber.h"
 
+static gboolean stbbr_running = FALSE;
+static int stbbr_port = 0;
+
 int
-stbbr_start(stbbr_log_t loglevel, int port, int httpport)
+stbbr_start(stbbr_log_t loglevel, int *port, int httpport)
 {
-    return server_run(loglevel, port, httpport);
+    if (stbbr_running) {
+        stbbr_stop();
+    }
+    int res = server_run(loglevel, port, httpport);
+    if (res == 0) {
+        stbbr_running = TRUE;
+        stbbr_port = *port;
+    }
+    return res;
+}
+
+int
+stbbr_get_port(void)
+{
+    return stbbr_port;
 }
 
 void
@@ -91,4 +108,6 @@ void
 stbbr_stop(void)
 {
     server_stop();
+    stbbr_running = FALSE;
+    stbbr_port = 0;
 }

@@ -30,7 +30,8 @@ typedef enum {
     STBBR_LOGERROR
 } stbbr_log_t;
 
-int stbbr_start(stbbr_log_t loglevel, int port, int httpport);
+int stbbr_start(stbbr_log_t loglevel, int *port, int httpport);
+int stbbr_get_port(void);
 void stbbr_stop(void);
 
 void stbbr_set_timeout(int seconds);

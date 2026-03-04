@@ -53,11 +53,24 @@
 #define STREAM_END "</stream:stream>"
 
 pthread_mutex_t send_queue_lock;
+static gboolean server_initialized = FALSE;
+
+void
+server_init(void)
+{
+    if (server_initialized) {
+        return;
+    }
+    pthread_mutex_init(&send_queue_lock, NULL);
+    stanzas_init();
+    server_initialized = TRUE;
+}
 
 static GList *send_queue;
 static XMPPClient *client;
-static int listen_socket;
+static int listen_socket = -1;
 static pthread_t server_thread;
+static gboolean server_thread_started = FALSE;
 static gboolean kill_recv = FALSE;
 static gboolean httpapi_run = FALSE;
 
@@ -97,8 +110,7 @@ write_stream(const char * const stream)
 int
 read_stream(void)
 {
-    char buf[2];
-    memset(buf, 0, sizeof(buf));
+    char buf[4096];
     GString *stream = g_string_new("");
 
     errno = 0;
@@ -120,7 +132,7 @@ read_stream(void)
         send_queue = NULL;
         pthread_mutex_unlock(&send_queue_lock);
 
-        int read_size = recv(client->sock, buf, 1, 0);
+        int read_size = recv(client->sock, buf, sizeof(buf) - 1, 0);
 
         // client disconnect
         if (read_size == 0) {
@@ -145,16 +157,16 @@ read_stream(void)
             }
         }
 
-        // success, feed parser with byte
-        parser_feed(buf, 1);
+        buf[read_size] = '\0';
+        parser_feed(buf, read_size);
         g_string_append_len(stream, buf, read_size);
+
         if (g_str_has_suffix(stream->str, STREAM_END)) {
             log_println(STBBR_LOGINFO, "RECV: </stream:stream>");
             log_println(STBBR_LOGINFO, "--> Stream end callback fired");
             write_stream(STREAM_END);
             kill_recv = TRUE;
         }
-        memset(buf, 0, sizeof(buf));
     }
 
     return 0;
@@ -203,6 +215,8 @@ auth_callback(XMPPStanza *stanza)
         client->resource = strdup(resource->content->str);
 
         char *expected_password = prime_get_passwd();
+        log_println(STBBR_LOGDEBUG, "Auth attempt: user=%s, pass=%s, res=%s", client->username, client->password, client->resource);
+
         if (g_strcmp0(client->password, expected_password) != 0) {
             GString *authfail = g_string_new("<iq id=\"");
             g_string_append(authfail, id);
@@ -222,49 +236,80 @@ auth_callback(XMPPStanza *stanza)
 }
 
 void
-id_callback(const char *id)
+id_callback(const char *name, const char *id)
 {
     char *stream = prime_get_for_id(id);
+    if (!stream) {
+        // Try matching with name:id
+        gchar *combined = g_strdup_printf("%s:%s", name, id);
+        stream = prime_get_for_id(combined);
+        g_free(combined);
+    }
+
     if (!stream) {
         return;
     }
 
     log_println(STBBR_LOGINFO, "--> ID callback fired for '%s'", id);
-    write_stream(stream);
+
+    XMPPStanza *stanza = stanza_parse(stream);
+    stanza_set_id(stanza, id);
+    char *out = stanza_to_string(stanza);
+    write_stream(out);
+    free(out);
+    stanza_free(stanza);
 }
 
 void
 query_callback(const char *query, const char *id)
 {
-    XMPPStanza *stanza = prime_get_for_query(query);
-    if (!stanza) {
+    XMPPStanza *stub = prime_get_for_query(query);
+    if (!stub) {
         return;
     }
 
     log_println(STBBR_LOGINFO, "--> QUERY callback fired for '%s'", query);
+    
+    // Clone the stub so we don't modify the global one
+    char *stub_str = stanza_to_string(stub);
+    XMPPStanza *stanza = stanza_parse(stub_str);
+    free(stub_str);
+
     stanza_set_id(stanza, id);
     char *stream = stanza_to_string(stanza);
     write_stream(stream);
     free(stream);
+    stanza_free(stanza);
 }
 
 void
 server_wait_for(char *id)
 {
+    server_init();
     log_println(STBBR_LOGINFO, "Received wait for stanza with id: %s", id);
-    while (TRUE) {
+    
+    int retries = 0;
+    while (retries < 500) { // 5 seconds (500 * 10ms)
         int res = stanzas_contains_id(id);
         if (res) {
             log_println(STBBR_LOGINFO, "WAIT complete for id: %s", id);
             return;
         }
-        usleep(1000 * 5);
+        usleep(1000 * 10);
+        retries++;
     }
+    log_println(STBBR_LOGERROR, "WAIT TIMEOUT for id: %s", id);
 }
 
 int
-server_run(stbbr_log_t loglevel, int port, int httpport)
+server_run(stbbr_log_t loglevel, int *port, int httpport)
 {
+    usleep(1000 * 100); // 100ms delay to let OS release port
+    log_pre_init();
+    server_init();
+    
+    usleep(1000 * 1000); // 1s wait for OS to truly release previous port
+
 #ifdef PLATFORM_OSX
     pthread_setname_np("main");
 #else
@@ -280,56 +325,73 @@ server_run(stbbr_log_t loglevel, int port, int httpport)
     verify_set_timeout(10);
 
     log_init(loglevel);
-    log_println(STBBR_LOGINFO, "Starting on port: %d...", port);
+    log_println(STBBR_LOGINFO, "Starting on port: %d...", *port);
 
     // create listen socket
     errno = 0;
-    listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    if (listen_socket == -1) {
-        log_println(STBBR_LOGERROR, "Could not create socket: %s", strerror(errno));
-        _shutdown();
-        return -1;
-    }
+    if (listen_socket < 0) {
+        listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+        if (listen_socket == -1) {
+            log_println(STBBR_LOGERROR, "Could not create socket: %s", strerror(errno));
+            _shutdown();
+            return -1;
+        }
 
-    struct sockaddr_in server_addr;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(port);
+        struct sockaddr_in server_addr;
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_addr.s_addr = INADDR_ANY;
+        server_addr.sin_port = htons(*port);
 
-    int reuse = 1;
-    int ret = setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-    if (ret == -1) {
-        log_println(STBBR_LOGERROR, "Set socket options failed: %s", strerror(errno));
-        _shutdown();
-        return -1;
-    }
+        int reuse = 1;
+        setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+#ifdef SO_REUSEPORT
+        setsockopt(listen_socket, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse));
+#endif
 
-    // bind socket to port
-    errno = 0;
-    ret = bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
-    if (ret == -1) {
-        log_println(STBBR_LOGERROR, "Bind failed: %s", strerror(errno));
-        _shutdown();
-        return -1;
-    }
+        // bind socket to port
+        errno = 0;
+        int ret = bind(listen_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
+        if (ret == -1) {
+            log_println(STBBR_LOGERROR, "Bind failed: %s", strerror(errno));
+            _shutdown();
+            return -1;
+        }
 
-    // set socket to listen mode
-    errno = 0;
-    ret = listen(listen_socket, 5);
-    if (ret == -1) {
-        log_println(STBBR_LOGERROR, "Listen failed: %s", strerror(errno));
-        _shutdown();
-        return -1;
+        // If port 0 was used, get the assigned port
+        if (*port == 0) {
+            socklen_t len = sizeof(server_addr);
+            if (getsockname(listen_socket, (struct sockaddr *)&server_addr, &len) == -1) {
+                log_println(STBBR_LOGERROR, "getsockname failed: %s", strerror(errno));
+                _shutdown();
+                return -1;
+            }
+            *port = ntohs(server_addr.sin_port);
+        }
+
+        // set socket to listen mode
+        errno = 0;
+        ret = listen(listen_socket, 5);
+        if (ret == -1) {
+            log_println(STBBR_LOGERROR, "Listen failed: %s", strerror(errno));
+            _shutdown();
+            return -1;
+        }
     }
 
     prime_init();
 
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 1024 * 1024); // 1MB
+
     // start client processor thread
-    int res = pthread_create(&server_thread, NULL, _start_server_cb, NULL);
+    int res = pthread_create(&server_thread, &attr, _start_server_cb, NULL);
+    pthread_attr_destroy(&attr);
     if (res != 0) {
         _shutdown();
         return -1;
     }
+    server_thread_started = TRUE;
 
     // start http server
     if (httpport > 0) {
@@ -347,6 +409,7 @@ server_run(stbbr_log_t loglevel, int port, int httpport)
 void
 server_send(char *stream)
 {
+    server_init();
     log_println(STBBR_LOGDEBUG, "Received send: %s", stream);
 
     pthread_mutex_lock(&send_queue_lock);
@@ -357,13 +420,28 @@ server_send(char *stream)
 void
 server_stop(void)
 {
+    server_init();
     if (kill_recv) {
         return;
     }
 
     log_println(STBBR_LOGINFO, "SERVER STOP");
     kill_recv = TRUE;
-    pthread_join(server_thread, NULL);
+    if (server_thread_started) {
+        pthread_join(server_thread, NULL);
+        server_thread_started = FALSE;
+    }
+
+    if (listen_socket > 0) {
+        shutdown(listen_socket, SHUT_RDWR);
+        char junk[1024];
+        while (recv(listen_socket, junk, sizeof(junk), MSG_DONTWAIT) > 0);
+        close(listen_socket);
+        listen_socket = -1;
+    }
+
+    _shutdown();
+    kill_recv = FALSE;
 }
 
 static void*
@@ -375,8 +453,6 @@ _start_server_cb(void* userdata)
     prctl(PR_SET_NAME, "stbr");
 #endif
 
-    struct sockaddr_in client_addr;
-
     // listen socket non blocking
     int res = fcntl(listen_socket, F_SETFL, fcntl(listen_socket, F_GETFL, 0) | O_NONBLOCK);
     if (res == -1) {
@@ -387,16 +463,19 @@ _start_server_cb(void* userdata)
     log_println(STBBR_LOGINFO, "Waiting for incoming connection...");
 
     // wait for connection
-    int c = sizeof(struct sockaddr_in);
     int client_socket;
     errno = 0;
-    while ((client_socket = accept(listen_socket, (struct sockaddr *)&client_addr, (socklen_t*)&c)) == -1) {
+    while (!kill_recv && (client_socket = accept(listen_socket, NULL, NULL)) == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) {
             log_println(STBBR_LOGERROR, "Accept failed: %s", strerror(errno));
             return NULL;
         }
         errno = 0;
         usleep(1000 * 5);
+    }
+
+    if (kill_recv) {
+        return NULL;
     }
 
     // client socket non blocking
@@ -406,7 +485,9 @@ _start_server_cb(void* userdata)
         return NULL;
     }
 
-    client = xmppclient_new(client_addr, client_socket);
+    struct sockaddr_in dummy_addr;
+    memset(&dummy_addr, 0, sizeof(dummy_addr));
+    client = xmppclient_new(dummy_addr, client_socket);
     parser_init(stream_start_callback, auth_callback, id_callback, query_callback);
 
     read_stream();
@@ -421,16 +502,15 @@ _shutdown(void)
 
     if (httpapi_run) {
         httpapi_stop();
+        httpapi_run = FALSE;
     }
 
-    xmppclient_end_session(client);
-    client = NULL;
+    if (client) {
+        xmppclient_end_session(client);
+        client = NULL;
+    }
 
     parser_close();
-
-    shutdown(listen_socket, 2);
-    while (recv(listen_socket, NULL, 1, 0) > 0) {}
-    close(listen_socket);
 
     prime_free_all();
     stanzas_free_all();
@@ -440,7 +520,6 @@ _shutdown(void)
     send_queue = NULL;
     pthread_mutex_unlock(&send_queue_lock);
 
-    log_println(STBBR_LOGINFO, "");
-    log_println(STBBR_LOGINFO, "");
+    log_println(STBBR_LOGINFO, "SHUTDOWN DONE");
     log_close();
 }

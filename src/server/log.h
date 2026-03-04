@@ -25,6 +25,7 @@
 
 #include "stabber.h"
 
+void log_pre_init(void);
 void log_init(stbbr_log_t loglevel);
 void log_close(void);
 void log_println(stbbr_log_t loglevel, const char * const msg, ...);

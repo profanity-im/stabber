@@ -35,7 +35,8 @@ XMPPClient*
 xmppclient_new(struct sockaddr_in client_addr, int socket)
 {
     XMPPClient *client = malloc(sizeof(XMPPClient));
-    client->ip = strdup(inet_ntoa(client_addr.sin_addr));
+    char *ip = inet_ntoa(client_addr.sin_addr);
+    client->ip = strdup(ip);
     client->port = ntohs(client_addr.sin_port);
     client->sock = socket;
     client->username = NULL;

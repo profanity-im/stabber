@@ -27,6 +27,7 @@
 
 #include "server/stanza.h"
 
+void stanzas_init(void);
 void stanzas_add(XMPPStanza *stanza);
 
 int stanzas_verify_any(XMPPStanza *stanza);
