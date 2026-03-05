@@ -20,55 +20,44 @@
  *
  */
 
-#include <string.h>
+#include <stdlib.h>
+#include <glib.h>
 #include <unistd.h>
 
-#include <expat.h>
-
-#include "server/stanza.h"
+#include "stabber.h"
 #include "server/stanzas.h"
 #include "server/log.h"
 
-static int timeoutsecs = 0;
+static int verify_timeout = 10;
 
 void
 verify_set_timeout(int seconds)
 {
-    log_println(STBBR_LOGDEBUG, "Setting timeout: %d seconds", seconds);
-
-    if (seconds <= 0) {
-        timeoutsecs = 0;
-    } else {
-        timeoutsecs = seconds;
-    }
+    verify_timeout = seconds;
 }
 
 int
-verify_any(char *stanza_text, gboolean ign_timeout)
+verify_any(char *stanza_text, int clear)
 {
     XMPPStanza *stanza = stanza_parse(stanza_text);
+    GTimer *timer = g_timer_new();
+    int result = FALSE;
 
-    int result = 0;
-    if (timeoutsecs <= 0 || ign_timeout) {
-        result = stanzas_verify_any(stanza);
-    } else {
-        double elapsed = 0.0;
-        GTimer *timer = g_timer_new();
-        while (elapsed < timeoutsecs * 1.0) {
-            result = stanzas_verify_any(stanza);
-            if (result) {
-                break;
-            }
-
-            usleep(1000 * 50);
-            elapsed = g_timer_elapsed(timer, NULL);
+    while (g_timer_elapsed(timer, NULL) < verify_timeout) {
+        result = stanzas_verify_any(stanza, clear);
+        if (result) {
+            break;
         }
+        usleep(1000 * 10);
     }
 
+    g_timer_destroy(timer);
+    stanza_free(stanza);
+
     if (result) {
-        log_println(STBBR_LOGINFO, "VERIFY SUCCESS: %s", stanza_text);
+        log_println(STBBR_LOGINFO, "VERIFY ANY SUCCESS: %s", stanza_text);
     } else {
-        log_println(STBBR_LOGINFO, "VERIFY FAIL: %s", stanza_text);
+        log_println(STBBR_LOGINFO, "VERIFY ANY FAIL: %s", stanza_text);
     }
 
     return result;
@@ -78,23 +67,19 @@ int
 verify_last(char *stanza_text)
 {
     XMPPStanza *stanza = stanza_parse(stanza_text);
+    GTimer *timer = g_timer_new();
+    int result = FALSE;
 
-    int result = 0;
-    if (timeoutsecs <= 0) {
+    while (g_timer_elapsed(timer, NULL) < verify_timeout) {
         result = stanzas_verify_last(stanza);
-    } else {
-        double elapsed = 0.0;
-        GTimer *timer = g_timer_new();
-        while (elapsed < timeoutsecs * 1.0) {
-            result = stanzas_verify_last(stanza);
-            if (result) {
-                break;
-            }
-
-            usleep(1000 * 50);
-            elapsed = g_timer_elapsed(timer, NULL);
+        if (result) {
+            break;
         }
+        usleep(1000 * 10);
     }
+
+    g_timer_destroy(timer);
+    stanza_free(stanza);
 
     if (result) {
         log_println(STBBR_LOGINFO, "VERIFY LAST SUCCESS: %s", stanza_text);

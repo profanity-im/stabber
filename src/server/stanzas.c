@@ -20,241 +20,168 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <glib.h>
 #include <fnmatch.h>
+#include <glib.h>
 
-#include "server/stanza.h"
+#include "server/stanzas.h"
 #include "server/log.h"
 
-pthread_mutex_t stanzas_lock;
-static GList *stanzas;
-
-static gboolean stanzas_initialized = FALSE;
+static GList *received_stanzas = NULL;
+static pthread_mutex_t stanzas_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void
 stanzas_init(void)
 {
-    if (stanzas_initialized) {
-        return;
-    }
-    pthread_mutex_init(&stanzas_lock, NULL);
-    stanzas_initialized = TRUE;
-}
-
-static int _xmpp_attr_equal(XMPPAttr *attr1, XMPPAttr *attr2);
-static int _stanzas_equal(XMPPStanza *first, XMPPStanza *second);
-
-int
-stanzas_contains_id(char *id)
-{
-    stanzas_init();
-    
-    char *name_filter = NULL;
-    char *id_filter = id;
-    char *colon = strchr(id, ':');
-    if (colon) {
-        name_filter = g_strndup(id, colon - id);
-        id_filter = colon + 1;
-    }
-
     pthread_mutex_lock(&stanzas_lock);
-    GList *curr = stanzas;
-    while (curr) {
-        XMPPStanza *stanza = curr->data;
-        
-        gboolean name_match = TRUE;
-        if (name_filter && g_strcmp0(stanza->name, name_filter) != 0) {
-            name_match = FALSE;
-        }
-
-        if (name_match) {
-            GList *curr_attr = stanza->attrs;
-            while (curr_attr) {
-                XMPPAttr *attr = curr_attr->data;
-                if (g_strcmp0(attr->name, "id") == 0 && fnmatch(id_filter, attr->value, 0) == 0) {
-                    pthread_mutex_unlock(&stanzas_lock);
-                    g_free(name_filter);
-                    return 1;
-                }
-                curr_attr = g_list_next(curr_attr);
-            }
-            // If we are looking for ANY id in a specific stanza name
-            if (g_strcmp0(id_filter, "*") == 0) {
-                pthread_mutex_unlock(&stanzas_lock);
-                g_free(name_filter);
-                return 1;
-            }
-        }
-        curr = g_list_next(curr);
-    }
+    received_stanzas = NULL;
     pthread_mutex_unlock(&stanzas_lock);
-    g_free(name_filter);
-
-    return 0;
-}
-
-void
-stanzas_add(XMPPStanza *stanza)
-{
-    stanzas_init();
-    pthread_mutex_lock(&stanzas_lock);
-    stanzas = g_list_append(stanzas, stanza);
-    pthread_mutex_unlock(&stanzas_lock);
-}
-
-int
-stanzas_verify_any(XMPPStanza *stanza)
-{
-    stanzas_init();
-    pthread_mutex_lock(&stanzas_lock);
-    if (!stanzas) {
-        pthread_mutex_unlock(&stanzas_lock);
-        return 0;
-    }
-
-    GList *curr = g_list_last(stanzas);
-    while (curr) {
-        XMPPStanza *curr_stanza = curr->data;
-        if (_stanzas_equal(stanza, curr_stanza) == 0) {
-            pthread_mutex_unlock(&stanzas_lock);
-            return 1;
-        }
-
-        curr = g_list_previous(curr);
-    }
-
-    pthread_mutex_unlock(&stanzas_lock);
-    return 0;
-}
-
-int
-stanzas_verify_last(XMPPStanza *stanza)
-{
-    stanzas_init();
-    pthread_mutex_lock(&stanzas_lock);
-    if (!stanzas) {
-        pthread_mutex_unlock(&stanzas_lock);
-        return 0;
-    }
-
-    GList *last = g_list_last(stanzas);
-    if (!last) {
-        pthread_mutex_unlock(&stanzas_lock);
-        return 0;
-    }
-
-    XMPPStanza *last_stanza = (XMPPStanza *)last->data;
-    int res = _stanzas_equal(stanza, last_stanza);
-    pthread_mutex_unlock(&stanzas_lock);
-    if (res == 0) {
-        return 1;
-    } else {
-        return 0;
-    }
 }
 
 void
 stanzas_free_all(void)
 {
-    stanzas_init();
     pthread_mutex_lock(&stanzas_lock);
-    g_list_free_full(stanzas, (GDestroyNotify)stanza_free);
-    stanzas = NULL;
+    g_list_free_full(received_stanzas, (GDestroyNotify)stanza_free);
+    received_stanzas = NULL;
     pthread_mutex_unlock(&stanzas_lock);
 }
 
-static int
-_xmpp_attr_equal(XMPPAttr *attr1, XMPPAttr *attr2)
+void
+stanzas_add(XMPPStanza *stanza)
 {
-    if (g_strcmp0(attr1->name, attr2->name) != 0) {
+    pthread_mutex_lock(&stanzas_lock);
+    received_stanzas = g_list_append(received_stanzas, stanza);
+    pthread_mutex_unlock(&stanzas_lock);
+}
+
+int
+stanzas_contains_id(const char *id_filter)
+{
+    int result = FALSE;
+    pthread_mutex_lock(&stanzas_lock);
+    GList *curr = received_stanzas;
+    while (curr) {
+        XMPPStanza *stanza = (XMPPStanza *)curr->data;
+        const char *id = stanza_get_id(stanza);
+        if (id) {
+            gchar *full_id = g_strdup_printf("%s:%s", stanza->name, id);
+            if (fnmatch(id_filter, full_id, 0) == 0) {
+                result = TRUE;
+                g_free(full_id);
+                break;
+            }
+            g_free(full_id);
+        }
+        curr = g_list_next(curr);
+    }
+    pthread_mutex_unlock(&stanzas_lock);
+
+    return result;
+}
+
+static int
+_xmpp_attr_equal(XMPPAttr *received_attr, XMPPAttr *template_attr)
+{
+    if (g_strcmp0(template_attr->name, received_attr->name) != 0) {
         return -1;
     }
 
-    if (g_strcmp0(attr1->value, "*") == 0) {
-        return 0;
-    }
-    if (g_strcmp0(attr2->value, "*") == 0) {
+    if (fnmatch(template_attr->value, received_attr->value, 0) == 0) {
         return 0;
     }
 
-    if (fnmatch(attr1->value, attr2->value, 0) == 0) {
-        return 0;
-    }
-    if (fnmatch(attr2->value, attr1->value, 0) == 0) {
-        return 0;
-    }
+    return -1;
+}
 
-    if (g_strcmp0(attr1->value, attr2->value) != 0) {
+static int
+_stanzas_equal(XMPPStanza *template, XMPPStanza *received)
+{
+    // Check name
+    if (g_strcmp0(template->name, "*") != 0 && g_strcmp0(template->name, received->name) != 0) {
         return -1;
+    }
+
+    // Check content (if template specifies content)
+    if (template->content && (template->content->len > 0)) {
+        if (!received->content || g_strcmp0(template->content->str, received->content->str) != 0) {
+            // Check if template content is a wildcard
+            if (g_strcmp0(template->content->str, "*") != 0) {
+                return -1;
+            }
+        }
+    }
+
+    // Check attributes: every attribute in template MUST exist in received
+    if (template->attrs) {
+        GList *curr_template_attr = template->attrs;
+        while (curr_template_attr) {
+            XMPPAttr *t_attr = (XMPPAttr *)curr_template_attr->data;
+            
+            GList *found_received_attr = g_list_find_custom(received->attrs, t_attr, (GCompareFunc)_xmpp_attr_equal);
+            if (!found_received_attr) {
+                return -1;
+            }
+
+            curr_template_attr = g_list_next(curr_template_attr);
+        }
+    }
+
+    // Every child in template MUST exist in received
+    if (template->children) {
+        GList *curr_template_child = template->children;
+        while (curr_template_child) {
+            XMPPStanza *t_child = (XMPPStanza *)curr_template_child->data;
+            
+            // Look for this child in received
+            GList *found_received_child = g_list_find_custom(received->children, t_child, (GCompareFunc)_stanzas_equal);
+            if (!found_received_child) {
+                return -1;
+            }
+
+            curr_template_child = g_list_next(curr_template_child);
+        }
     }
 
     return 0;
 }
 
-static int
-_stanzas_equal(XMPPStanza *first, XMPPStanza *second)
+int
+stanzas_verify_any(XMPPStanza *template, int clear)
 {
-    // check name
-    if (g_strcmp0(first->name, second->name) != 0) {
-        return -1;
-    }
-
-    // check attribute count
-    if (g_list_length(first->attrs) != g_list_length(second->attrs)) {
-        return -1;
-    }
-
-    // check children count
-    if (g_list_length(first->children) != g_list_length(second->children)) {
-        return -1;
-    }
-
-    // check presence of content
-    if (!first->content && second->content && (second->content->len > 0)) {
-        return -1;
-    }
-    if (first->content && (first->content->len > 0) && !second->content) {
-        return -1;
-    }
-
-    // check content is exists
-    if (first->content && (first->content->len > 0)) {
-        if (g_strcmp0(first->content->str, second->content->str) != 0) {
-            return -1;
-        }
-    }
-
-    // check attributes
-    if (first->attrs) {
-        GList *first_curr_attr = first->attrs;
-        while (first_curr_attr) {
-            XMPPAttr *first_attr = (XMPPAttr *)first_curr_attr->data;
-
-            GList *second_found_attr = g_list_find_custom(second->attrs, first_attr, (GCompareFunc)_xmpp_attr_equal);
-            if (!second_found_attr) {
-                return -1;
+    int result = FALSE;
+    pthread_mutex_lock(&stanzas_lock);
+    GList *curr = received_stanzas;
+    while (curr) {
+        XMPPStanza *received = (XMPPStanza *)curr->data;
+        if (_stanzas_equal(template, received) == 0) {
+            result = TRUE;
+            if (clear) {
+                received_stanzas = g_list_delete_link(received_stanzas, curr);
+                stanza_free(received);
             }
+            break;
+        }
+        curr = g_list_next(curr);
+    }
+    pthread_mutex_unlock(&stanzas_lock);
 
-            first_curr_attr = g_list_next(first_curr_attr);
+    return result;
+}
+
+int
+stanzas_verify_last(XMPPStanza *template)
+{
+    int result = FALSE;
+    pthread_mutex_lock(&stanzas_lock);
+    GList *last = g_list_last(received_stanzas);
+    if (last) {
+        XMPPStanza *received = (XMPPStanza *)last->data;
+        if (_stanzas_equal(template, received) == 0) {
+            result = TRUE;
         }
     }
+    pthread_mutex_unlock(&stanzas_lock);
 
-    // check children
-    if (first->children) {
-        GList *first_curr_child = first->children;
-        while (first_curr_child) {
-            XMPPStanza *first_child = (XMPPStanza *)first_curr_child->data;
-            GList *second_found_child = g_list_find_custom(second->children, first_child, (GCompareFunc)_stanzas_equal);
-            if (!second_found_child) {
-                return -1;
-            }
-
-            first_curr_child = g_list_next(first_curr_child);
-        }
-    }
-
-    return 0;
+    return result;
 }

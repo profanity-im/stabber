@@ -23,17 +23,15 @@
 #ifndef __H_STANZAS
 #define __H_STANZAS
 
-#include <glib.h>
-
 #include "server/stanza.h"
 
 void stanzas_init(void);
 void stanzas_add(XMPPStanza *stanza);
 
-int stanzas_verify_any(XMPPStanza *stanza);
+int stanzas_verify_any(XMPPStanza *stanza, int clear);
 int stanzas_verify_last(XMPPStanza *stanza);
 
-int stanzas_contains_id(char *id);
+int stanzas_contains_id(const char *id);
 
 void stanzas_free_all(void);
 

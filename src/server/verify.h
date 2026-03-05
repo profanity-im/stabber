@@ -24,7 +24,7 @@
 #define __H_VERIFY
 
 void verify_set_timeout(int seconds);
-int verify_last(char *stanza);
-int verify_any(char *stanza, gboolean ign_timeout);
+int verify_any(char *stanza_text, int clear);
+int verify_last(char *stanza_text);
 
 #endif

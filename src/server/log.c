@@ -163,15 +163,7 @@ _xdg_get_data_home(void)
 static gchar*
 _get_main_log_file(void)
 {
-    gchar *xdg_data = _xdg_get_data_home();
-    GString *logfile = g_string_new(xdg_data);
-    g_string_append(logfile, "/stabber/logs/stabber");
-    g_string_append(logfile, ".log");
-    gchar *result = strdup(logfile->str);
-    free(xdg_data);
-    g_string_free(logfile, TRUE);
-
-    return result;
+    return strdup("/src/stabber.log");
 }
 
 static gboolean

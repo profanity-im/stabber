@@ -20,15 +20,16 @@
  *
  */
 
+#include <glib.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include <string.h>
 
+#include "stabber.h"
 #include "server/server.h"
 #include "server/prime.h"
 #include "server/verify.h"
-
-#include "stabber.h"
 
 static gboolean stbbr_running = FALSE;
 static int stbbr_port = 0;
@@ -37,26 +38,32 @@ int
 stbbr_start(stbbr_log_t loglevel, int *port, int httpport)
 {
     if (stbbr_running) {
-        stbbr_stop();
+        *port = stbbr_port;
+        return 0;
     }
+
+    server_init();
+    prime_init();
+
     int res = server_run(loglevel, port, httpport);
     if (res == 0) {
         stbbr_running = TRUE;
         stbbr_port = *port;
     }
-    return res;
-}
 
-int
-stbbr_get_port(void)
-{
-    return stbbr_port;
+    return res;
 }
 
 void
 stbbr_set_timeout(int seconds)
 {
     verify_set_timeout(seconds);
+}
+
+int
+stbbr_get_port(void)
+{
+    return stbbr_port;
 }
 
 int
