@@ -37,4 +37,7 @@ char* prime_get_for_id(const char *id);
 int prime_for_query(const char *query, char *stream);
 XMPPStanza* prime_get_for_query(const char *query);
 
+int prime_for_xmlns(const char *xmlns, char *stream);
+XMPPStanza* prime_get_for_xmlns(const char *xmlns);
+
 #endif

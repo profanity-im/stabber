@@ -12,7 +12,7 @@ sources = \
     src/server/verify.c src/server/verify.h \
     src/client/stabber.c src/client/stabber.h
 
-libstabber_la_LDFLAGS = -export-symbols-regex '^stbbr_'
+libstabber_la_LDFLAGS = 
 libstabber_la_SOURCES = $(sources)
 
 include_HEADERS = stabber.h

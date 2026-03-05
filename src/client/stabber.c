@@ -80,6 +80,13 @@ stbbr_for_query(char *query, char *stream)
     return 1;
 }
 
+int
+stbbr_for_xmlns(char *xmlns, char *stream)
+{
+    prime_for_xmlns(xmlns, stream);
+    return 1;
+}
+
 void
 stbbr_wait_for(char *id)
 {

@@ -48,6 +48,7 @@ const char* stanza_get_id(XMPPStanza *stanza);
 void stanza_set_id(XMPPStanza *stanza, const char *id);
 const char* stanza_get_attr(XMPPStanza *stanza, const char *name);
 const char *stanza_get_query_request(XMPPStanza *stanza);
+const char *stanza_get_xmlns(XMPPStanza *stanza);
 void stanza_free(XMPPStanza *stanza);
 
 #endif

@@ -136,6 +136,7 @@ connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const cha
 
     const char *id = NULL;
     const char *query = NULL;
+    const char *xmlns = NULL;
     int res = 0;
 
     switch (con_info->stbbr_op) {
@@ -146,7 +147,10 @@ connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const cha
         case STBBR_OP_FOR:
             id = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "id");
             query = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "query");
-            if (id && query) {
+            xmlns = MHD_lookup_connection_value(conn, MHD_GET_ARGUMENT_KIND, "xmlns");
+            
+            int count = (id ? 1 : 0) + (query ? 1 : 0) + (xmlns ? 1 : 0);
+            if (count != 1) {
                 return send_response(conn, NULL, MHD_HTTP_BAD_REQUEST);
             }
 
@@ -157,6 +161,11 @@ connection_cb(void* cls, struct MHD_Connection* conn, const char* url, const cha
 
             if (query) {
                 prime_for_query(query, con_info->body->str);
+                return send_response(conn, NULL, MHD_HTTP_CREATED);
+            }
+
+            if (xmlns) {
+                prime_for_xmlns(xmlns, con_info->body->str);
                 return send_response(conn, NULL, MHD_HTTP_CREATED);
             }
 

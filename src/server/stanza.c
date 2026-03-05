@@ -241,7 +241,7 @@ stanza_get_query_request(XMPPStanza *stanza)
     }
 
     const char *type = stanza_get_attr(stanza, "type");
-    if (g_strcmp0(type, "result") == 0) {
+    if (g_strcmp0(type, "result") == 0 || g_strcmp0(type, "error") == 0) {
         return NULL;
     }
 
@@ -255,6 +255,28 @@ stanza_get_query_request(XMPPStanza *stanza)
         return NULL;
     }
 
+    return xmlns;
+}
+
+const char*
+stanza_get_xmlns(XMPPStanza *stanza)
+{
+    if (g_strcmp0(stanza->name, "iq") != 0) {
+        return NULL;
+    }
+
+    const char *type = stanza_get_attr(stanza, "type");
+    if (g_strcmp0(type, "result") == 0 || g_strcmp0(type, "error") == 0) {
+        return NULL;
+    }
+
+    if (!stanza->children) {
+        return NULL;
+    }
+
+    // Return xmlns of first child
+    XMPPStanza *child = stanza->children->data;
+    const char *xmlns = stanza_get_attr(child, "xmlns");
     return xmlns;
 }
 

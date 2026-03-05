@@ -283,6 +283,28 @@ query_callback(const char *query, const char *id)
 }
 
 void
+xmlns_callback(const char *xmlns, const char *id)
+{
+    XMPPStanza *stub = prime_get_for_xmlns(xmlns);
+    if (!stub) {
+        return;
+    }
+
+    log_println(STBBR_LOGINFO, "--> XMLNS callback fired for '%s'", xmlns);
+    
+    // Clone the stub so we don't modify the global one
+    char *stub_str = stanza_to_string(stub);
+    XMPPStanza *stanza = stanza_parse(stub_str);
+    free(stub_str);
+
+    stanza_set_id(stanza, id);
+    char *stream = stanza_to_string(stanza);
+    write_stream(stream);
+    free(stream);
+    stanza_free(stanza);
+}
+
+void
 server_wait_for(char *id)
 {
     server_init();
@@ -488,7 +510,7 @@ _start_server_cb(void* userdata)
     struct sockaddr_in dummy_addr;
     memset(&dummy_addr, 0, sizeof(dummy_addr));
     client = xmppclient_new(dummy_addr, client_socket);
-    parser_init(stream_start_callback, auth_callback, id_callback, query_callback);
+    parser_init(stream_start_callback, auth_callback, id_callback, query_callback, xmlns_callback);
 
     read_stream();
 

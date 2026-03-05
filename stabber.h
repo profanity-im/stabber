@@ -39,6 +39,7 @@ void stbbr_set_timeout(int seconds);
 int stbbr_auth_passwd(char *password);
 int stbbr_for_id(char *id, char *stream);
 int stbbr_for_query(char *query, char *stream);
+int stbbr_for_xmlns(char *xmlns, char *stream);
 
 void stbbr_wait_for(char *id);
 

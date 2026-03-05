@@ -40,13 +40,14 @@ static stream_start_func stream_start_cb = NULL;
 static auth_func auth_cb = NULL;
 static id_func id_cb = NULL;
 static query_func query_cb = NULL;
+static xmlns_func xmlns_cb = NULL;
 
 static void _start_element(void *data, const char *element, const char **attributes);
 static void _end_element(void *data, const char *element);
 static void _handle_data(void *data, const char *content, int length);
 
 void
-parser_init(stream_start_func startcb, auth_func authcb, id_func idcb, query_func querycb)
+parser_init(stream_start_func startcb, auth_func authcb, id_func idcb, query_func querycb, xmlns_func xmlnscb)
 {
     if (curr_string) {
         g_string_free(curr_string, TRUE);
@@ -57,6 +58,7 @@ parser_init(stream_start_func startcb, auth_func authcb, id_func idcb, query_fun
     auth_cb = authcb;
     id_cb = idcb;
     query_cb = querycb;
+    xmlns_cb = xmlnscb;
 
     parser = XML_ParserCreate(NULL);
     XML_SetElementHandler(parser, _start_element, _end_element);
@@ -132,6 +134,10 @@ _end_element(void *data, const char *element)
             const char *query = stanza_get_query_request(curr_stanza);
             if (query) {
                 query_cb(query, id);
+            }
+            const char *xmlns = stanza_get_xmlns(curr_stanza);
+            if (xmlns) {
+                xmlns_cb(xmlns, id);
             }
         }
         

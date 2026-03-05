@@ -34,6 +34,7 @@
 static char *required_passwd = NULL;
 static GHashTable *idstubs = NULL;
 static GHashTable *querystubs = NULL;
+static GHashTable *xmlnsstubs = NULL;
 
 void
 prime_init(void)
@@ -44,6 +45,7 @@ prime_init(void)
     required_passwd = strdup("password");
     idstubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
     querystubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, (GDestroyNotify)stanza_free);
+    xmlnsstubs = g_hash_table_new_full(g_str_hash, g_str_equal, free, (GDestroyNotify)stanza_free);
 }
 
 void
@@ -61,13 +63,16 @@ prime_free_all(void)
         g_hash_table_destroy(querystubs);
     }
     querystubs = NULL;
+
+    if (xmlnsstubs) {
+        g_hash_table_destroy(xmlnsstubs);
+    }
+    xmlnsstubs = NULL;
 }
 
 void
 prime_required_passwd(char *password)
 {
-    log_println(STBBR_LOGDEBUG, "Received auth password: %s", password);
-
     free(required_passwd);
     required_passwd = strdup(password);
 }
@@ -85,7 +90,6 @@ prime_for_id(const char *id, char *stream)
         prime_init();
     }
 
-    log_println(STBBR_LOGDEBUG, "Received stub for id: %s, stanza: %s", id, stream);
     g_hash_table_insert(idstubs, strdup(id), strdup(stream));
 }
 
@@ -122,7 +126,6 @@ prime_for_query(const char *query, char *stream)
         prime_init();
     }
 
-    log_println(STBBR_LOGDEBUG, "Received stub for query: %s, stanza: %s", query, stream);
     XMPPStanza *stanza = stanza_parse(stream);
     g_hash_table_insert(querystubs, strdup(query), stanza);
 }
@@ -131,4 +134,21 @@ XMPPStanza*
 prime_get_for_query(const char *query)
 {
     return g_hash_table_lookup(querystubs, query);
+}
+
+void
+prime_for_xmlns(const char *xmlns, char *stream)
+{
+    if (!xmlnsstubs) {
+        prime_init();
+    }
+
+    XMPPStanza *stanza = stanza_parse(stream);
+    g_hash_table_insert(xmlnsstubs, strdup(xmlns), stanza);
+}
+
+XMPPStanza*
+prime_get_for_xmlns(const char *xmlns)
+{
+    return g_hash_table_lookup(xmlnsstubs, xmlns);
 }

@@ -180,6 +180,13 @@ _xmpp_attr_equal(XMPPAttr *attr1, XMPPAttr *attr2)
         return 0;
     }
 
+    if (fnmatch(attr1->value, attr2->value, 0) == 0) {
+        return 0;
+    }
+    if (fnmatch(attr2->value, attr1->value, 0) == 0) {
+        return 0;
+    }
+
     if (g_strcmp0(attr1->value, attr2->value) != 0) {
         return -1;
     }
@@ -206,15 +213,15 @@ _stanzas_equal(XMPPStanza *first, XMPPStanza *second)
     }
 
     // check presence of content
-    if (!first->content && second->content) {
+    if (!first->content && second->content && (second->content->len > 0)) {
         return -1;
     }
-    if (first->content && !second->content) {
+    if (first->content && (first->content->len > 0) && !second->content) {
         return -1;
     }
 
     // check content is exists
-    if (first->content) {
+    if (first->content && (first->content->len > 0)) {
         if (g_strcmp0(first->content->str, second->content->str) != 0) {
             return -1;
         }
