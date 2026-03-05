@@ -95,7 +95,7 @@ _xmpp_attr_equal(XMPPAttr *received_attr, XMPPAttr *template_attr)
 }
 
 static int
-_stanzas_equal(XMPPStanza *template, XMPPStanza *received)
+_stanzas_equal(XMPPStanza *received, XMPPStanza *template)
 {
     // Check name
     if (g_strcmp0(template->name, "*") != 0 && g_strcmp0(template->name, received->name) != 0) {
@@ -154,7 +154,7 @@ stanzas_verify_any(XMPPStanza *template, int clear)
     GList *curr = received_stanzas;
     while (curr) {
         XMPPStanza *received = (XMPPStanza *)curr->data;
-        if (_stanzas_equal(template, received) == 0) {
+        if (_stanzas_equal(received, template) == 0) {
             result = TRUE;
             if (clear) {
                 received_stanzas = g_list_delete_link(received_stanzas, curr);
@@ -177,7 +177,7 @@ stanzas_verify_last(XMPPStanza *template)
     GList *last = g_list_last(received_stanzas);
     if (last) {
         XMPPStanza *received = (XMPPStanza *)last->data;
-        if (_stanzas_equal(template, received) == 0) {
+        if (_stanzas_equal(received, template) == 0) {
             result = TRUE;
         }
     }
