@@ -33,6 +33,8 @@ int stanzas_verify_last(XMPPStanza *stanza);
 
 int stanzas_contains_id(const char *id);
 
+char* stanzas_get_to_by_id(const char *id);
+
 void stanzas_free_all(void);
 
 #endif

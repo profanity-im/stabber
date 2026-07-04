@@ -265,6 +265,61 @@ query_callback(const char *query, const char *id)
 {
     XMPPStanza *stub = prime_get_for_query(query);
     if (!stub) {
+        char *to_jid = stanzas_get_to_by_id(id);
+        const char *from_jid = to_jid ? to_jid : "localhost";
+
+        if (g_strcmp0(query, "http://jabber.org/protocol/disco#items") == 0) {
+            log_println(STBBR_LOGINFO, "--> Default disco#items query response fired for id '%s' from '%s'", id, from_jid);
+            gchar *resp;
+            if (g_strcmp0(id, "discoitemsreq_onconnect") == 0) {
+                resp = g_strdup_printf(
+                    "<iq type=\"result\" id=\"%s\" to=\"stabber@localhost/profanity\" from=\"%s\">"
+                    "<query xmlns=\"http://jabber.org/protocol/disco#items\">"
+                    "<item jid=\"pubsub.localhost\" name=\"PubSub Service\"/>"
+                    "</query>"
+                    "</iq>", id, from_jid);
+            } else {
+                resp = g_strdup_printf(
+                    "<iq type=\"result\" id=\"%s\" to=\"stabber@localhost/profanity\" from=\"%s\">"
+                    "<query xmlns=\"http://jabber.org/protocol/disco#items\"/>"
+                    "</iq>", id, from_jid);
+            }
+            write_stream(resp);
+            g_free(resp);
+            free(to_jid);
+            return;
+        } else if (g_strcmp0(query, "http://jabber.org/protocol/disco#info") == 0) {
+            log_println(STBBR_LOGINFO, "--> Default disco#info query response fired for id '%s' from '%s'", id, from_jid);
+            
+            GString *features_xml = g_string_new("");
+            g_string_append(features_xml, "<feature var=\"http://jabber.org/protocol/disco#info\"/>");
+            g_string_append(features_xml, "<feature var=\"http://jabber.org/protocol/disco#items\"/>");
+            
+            if (getenv("STBBR_DISABLE_CARBONS") == NULL) {
+                g_string_append(features_xml, "<feature var=\"urn:xmpp:carbons:2\"/>");
+            }
+            if (getenv("STBBR_DISABLE_MAM") == NULL) {
+                g_string_append(features_xml, "<feature var=\"urn:xmpp:mam:2\"/>");
+            }
+            if (getenv("STBBR_DISABLE_PING") == NULL) {
+                g_string_append(features_xml, "<feature var=\"urn:xmpp:ping\"/>");
+            }
+
+            gchar *resp = g_strdup_printf(
+                "<iq type=\"result\" id=\"%s\" to=\"stabber@localhost/profanity\" from=\"%s\">"
+                "<query xmlns=\"http://jabber.org/protocol/disco#info\">"
+                "<identity category=\"server\" type=\"im\" name=\"Stabber\"/>"
+                "%s"
+                "</query>"
+                "</iq>", id, from_jid, features_xml->str);
+            
+            write_stream(resp);
+            g_free(resp);
+            g_string_free(features_xml, TRUE);
+            free(to_jid);
+            return;
+        }
+        free(to_jid);
         return;
     }
 

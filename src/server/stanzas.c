@@ -185,3 +185,25 @@ stanzas_verify_last(XMPPStanza *template)
 
     return result;
 }
+
+char*
+stanzas_get_to_by_id(const char *id)
+{
+    char *to_val = NULL;
+    pthread_mutex_lock(&stanzas_lock);
+    GList *curr = received_stanzas;
+    while (curr) {
+        XMPPStanza *stanza = (XMPPStanza *)curr->data;
+        const char *stanza_id = stanza_get_id(stanza);
+        if (stanza_id && g_strcmp0(stanza_id, id) == 0) {
+            const char *to = stanza_get_attr(stanza, "to");
+            if (to) {
+                to_val = strdup(to);
+            }
+            break;
+        }
+        curr = g_list_next(curr);
+    }
+    pthread_mutex_unlock(&stanzas_lock);
+    return to_val;
+}
